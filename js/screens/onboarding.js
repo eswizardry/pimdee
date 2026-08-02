@@ -4,7 +4,7 @@ import { el, mascot, bar } from '../ui.js';
 import { Engine, isTypingKey } from '../engine.js';
 import * as store from '../store.js';
 import { blip } from '../audio.js';
-import { setThaiLayout } from '../layouts.js';
+import { setThaiLayout, wrongInputMethod } from '../layouts.js';
 
 const PLACEMENT = {
   th: 'แมวนอนกลางบ้านทั้งวันไม่ยอมไปไหน ฝนตกอยู่ข้างนอกตั้งแต่เช้า',
@@ -178,20 +178,43 @@ export function onboardingScreen(_params, nav) {
       step = 4; render();
     }
 
+    let wrongRun = 0;
+    let wrongBanner = null;
+
     function onKey(e) {
       if (e.key === 'Backspace') { e.preventDefault(); engine.backspace(); return; }
       if (!isTypingKey(e)) return;
       e.preventDefault();
       if (!live) { live = true; timer = setInterval(tickClock, 1000); }
+      const expected = engine.nextChar;
       const r = engine.press(e.key);
       if (r) blip(r.ok, engine.combo);
+
+      // The placement test is the very first thing anyone types, so it is where
+      // a wrong input method is most likely and most confusing. Space is neutral
+      // — it is the same key under every layout.
+      if (r && !(expected === ' ' || e.key === ' ')) {
+        const mismatch = r.ok ? null : wrongInputMethod(expected, e.key);
+        wrongRun = mismatch ? wrongRun + 1 : 0;
+        if (wrongRun >= 3 && !wrongBanner) {
+          wrongBanner = inputHint(mismatch);
+          testCard.parentNode.insertBefore(wrongBanner, testCard);
+        } else if (wrongRun === 0 && wrongBanner) {
+          wrongBanner.remove(); wrongBanner = null;
+        }
+      }
       if (r && r.finished) nextLang();
     }
 
     engine.addEventListener('change', paint);
     mountText(); paint();
 
-    const testCard = el('div.card-hero', { tabindex: '0', style: 'outline:none;cursor:text' },
+    const testCard = el('div.card-hero', {
+      tabindex: '0',
+      role: 'group',
+      'aria-label': 'แบบทดสอบวัดระดับ · placement test — click and type',
+      style: 'outline:none;cursor:text',
+    },
       el('div.spread', {},
         el('div.eyebrow', {}, `ขั้นที่ 3 · วัดระดับ (${lang === 'th' ? 'ไทย' : 'English'})`),
         clockEl),
@@ -205,8 +228,17 @@ export function onboardingScreen(_params, nav) {
         el('div', { style: 'font:400 12px/1.45 var(--th)' },
           'พิมพ์ไปเรื่อย ๆ ไม่ต้องรีบ — เราใช้ 30 วินาทีนี้ตั้งบทเริ่มต้นให้แต่ละภาษา')));
 
+    // Without this the card looks identical whether or not it is listening, so
+    // a lost focus reads as "the test is broken".
+    const overlay = el('div.overlay', {},
+      el('div.msg', {}, 'คลิกที่การ์ดนี้แล้วเริ่มพิมพ์',
+        el('br'), el('span.dim', {}, 'click here, then type')));
+    const testWrap = el('div', { style: 'position:relative' }, testCard, overlay);
+    testCard.addEventListener('focus', () => { overlay.style.display = 'none'; });
+    testCard.addEventListener('blur', () => { overlay.style.display = ''; });
+
     testCard.addEventListener('keydown', onKey);
-    testCard.addEventListener('mousedown', (e) => { e.preventDefault(); testCard.focus(); });
+    testWrap.addEventListener('mousedown', (e) => { e.preventDefault(); testCard.focus(); });
     requestAnimationFrame(() => testCard.focus());
 
     const summary = el('div.card', { style: 'padding:24px' },
@@ -226,7 +258,26 @@ export function onboardingScreen(_params, nav) {
           'ข้ามการวัดระดับ · Skip test')));
 
     return el('div', { style: 'padding:30px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start' },
-      summary, testCard);
+      summary, testWrap);
+  }
+
+  /** Shown when the OS input method is on the wrong script for this test. */
+  function inputHint(want) {
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+    const combo = mac ? 'Control + Space' : 'Windows + Space';
+    const th = want === 'th';
+    return el('div.card', {
+      role: 'alert',
+      style: 'margin-bottom:14px;border-color:var(--red);background:rgba(248,113,113,.08)',
+    },
+      el('div.eyebrow', { style: 'color:var(--red)' },
+        th ? 'สลับแป้นพิมพ์เป็นภาษาไทย · SWITCH TO THAI' : 'สลับแป้นพิมพ์เป็นภาษาอังกฤษ · SWITCH TO ENGLISH'),
+      el('div', { style: 'margin-top:8px;font:500 14px/1.4 var(--th)' },
+        th ? `ตอนนี้เครื่องยังพิมพ์ภาษาอังกฤษอยู่ — กด ${combo} เพื่อสลับเป็นไทย`
+           : `ตอนนี้เครื่องยังพิมพ์ภาษาไทยอยู่ — กด ${combo} เพื่อสลับเป็นอังกฤษ`),
+      el('div', { style: 'margin-top:6px;font:400 12px/1.5 var(--en);color:var(--sub)' },
+        th ? `Press ${combo} to switch to Thai. If Thai is not in the list, add it in your language settings — or press Skip and start with English.`
+           : `Press ${combo} to switch back to English.`));
   }
 
   // -- step 4 --------------------------------------------------------------
