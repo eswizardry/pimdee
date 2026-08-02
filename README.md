@@ -169,6 +169,24 @@ Beyond the ordinary drills:
 - Everything lives under the `tuktype.v1` localStorage key. `#/stats` → Reset
   wipes it.
 
+## Age band
+
+Onboarding asks who is learning — **เด็ก (7–12)** or **วัยรุ่นและผู้ใหญ่ (13+)** —
+and it changes the *words*, never the interface. Same screens, same keys, same
+chapter numbering; chapters 7–9 simply read differently. An adult types about the
+Pacific Ocean and photosynthesis; a child types about her cat sleeping under the
+table. Changeable any time from Stats.
+
+Chapters 1–6 are byte-identical in both bands, because they are mechanical key
+drills and the keys are the keys at any age.
+
+The implementation is a `childText` beside each `text`, deliberately **not** a
+separate chapter list: a drill's index is part of its progress key, so keeping
+the counts identical means stars, ghosts and cleared drills all survive a change
+of band. Tests assert the counts match, that 1–6 do not drift, that the child
+text obeys every invariant the adult text does, and that the band actually
+changes at least 20 drills.
+
 ## Wrong input method
 
 The commonest first-run failure, especially for a learner sitting alone: the

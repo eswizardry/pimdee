@@ -4,7 +4,7 @@
 import { el, fmt, mmss, clamp } from '../ui.js';
 import * as store from '../store.js';
 import { keyRows, capGlyph, layoutName, THAI_LAYOUTS, setThaiLayout, thaiLayoutId } from '../layouts.js';
-import { chapters } from '../content.js';
+import { chapters, setAgeBand, ageBand } from '../content.js';
 import { adSlot } from '../ads.js';
 
 export function statsScreen(_params, nav) {
@@ -13,6 +13,7 @@ export function statsScreen(_params, nav) {
     el('div.spread', { style: 'margin-bottom:16px' },
       el('div.eyebrow', {}, 'สถิติ · STATS'),
       el('div.row', { style: 'gap:8px' },
+      ageSwitcher(nav),
       layoutSwitcher(nav),
       el('button.btn-ghost', {
         onClick: () => {
@@ -38,6 +39,25 @@ export function statsScreen(_params, nav) {
       heatmap('th'), heatmap('en')),
     backupCard(nav),
     adSlot('statsFooter'));
+}
+
+/**
+ * Age changes the words in chapters 7–9 only, and drill counts are identical in
+ * both bands — so switching keeps every star, ghost and cleared drill.
+ */
+function ageSwitcher(nav) {
+  const cur = ageBand();
+  return el('div.segmented', {},
+    [['child', 'เด็ก'], ['adult', 'ผู้ใหญ่']].map(([id, label]) =>
+      el('button', {
+        class: id === cur ? 'on' : '',
+        title: id === 'child' ? 'คำง่าย ประโยคสั้น (บทที่ 7–9)' : 'ประโยคยาวและย่อหน้า (บทที่ 7–9)',
+        onClick: () => {
+          if (id === cur) return;
+          store.update((st) => { st.ageBand = setAgeBand(id); });
+          nav('#/stats', true);
+        },
+      }, label)));
 }
 
 /**

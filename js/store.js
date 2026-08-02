@@ -32,6 +32,7 @@ const blank = () => ({
   onboarded: false,
   name: 'พ',
   layout: 'kedmanee',
+  ageBand: 'adult',   // 'child' | 'adult' — changes the words, never the UI
   langs: ['th', 'en'],
   sound: true,
   haptics: true,

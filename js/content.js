@@ -141,15 +141,19 @@ const TH_KEDMANEE = [
         { focus: 'ควบกล้ำ ร · ร clusters', text: 'กร ปร ทร คร พร กราบ ปราบ ครับ' },
         // Thai's equivalent of "tricky words" is spelling, not homophone choice:
         // these are the forms that are most often written wrong. All correct here.
-        { focus: 'คำที่มักเขียนผิด · commonly misspelled', text: 'อนุญาต สังเกต กะเพรา โควตา อีเมล' },
-        { focus: 'คำที่มักเขียนผิด (ต่อ) · more of them', text: 'เกม ลายเซ็น นานาชาติ ผัดไทย ขนมปัง' },
-        { focus: 'ค่ะ กับ คะ · the ค่ะ / คะ trap', text: 'ค่ะ คะ นะคะ ใช่ค่ะ ขอบคุณค่ะ' },
+        { focus: 'คำที่มักเขียนผิด · commonly misspelled', text: 'อนุญาต สังเกต กะเพรา โควตา อีเมล',
+          childText: 'โรงเรียน เพื่อน ขนม การบ้าน สนุก' },
+        { focus: 'คำที่มักเขียนผิด (ต่อ) · more of them', text: 'เกม ลายเซ็น นานาชาติ ผัดไทย ขนมปัง',
+          childText: 'เกม ตุ๊กตา จักรยาน ไอศกรีม ลูกโป่ง' },
+        { focus: 'ค่ะ กับ คะ · the ค่ะ / คะ trap', text: 'ค่ะ คะ นะคะ ใช่ค่ะ ขอบคุณค่ะ',
+          childText: 'ครับ ค่ะ สวัสดีครับ ขอบคุณค่ะ' },
         'ที่ และ ของ ใน การ เป็น มี ได้ ให้ ไม่',
         'ความ จะ กับ ว่า นี้ นั้น เขา เรา คุณ ผม',
         'วัน เวลา ปี เดือน คืน เช้า เย็น บ่าย',
         'กิน นอน เดิน วิ่ง อ่าน เขียน ฟัง พูด',
         'ดี เก่ง สวย งาม ใหญ่ เล็ก สูง ต่ำ',
-        'ประเทศ เมือง บ้าน โรงเรียน ตลาด วัด',
+        { text: 'ประเทศ เมือง บ้าน โรงเรียน ตลาด วัด',
+          childText: 'บ้าน โรงเรียน สนาม สวน ห้อง ครัว' },
         'ขอบคุณ สวัสดี ยินดี ขอโทษ ไม่เป็นไร',
       ],
     },
@@ -160,14 +164,22 @@ const TH_KEDMANEE = [
       id: 8, name: 'ประโยคสั้น', en: 'Short sentences',
       keys: 'ทั้งหมด', goalWpm: 28,
       drills: [
-        'ช้างเป็นสัตว์บกที่ใหญ่ที่สุดในโลก',
-        'ต้นไม้สร้างอาหารเองได้จากแสงแดดและน้ำ',
-        'ดวงจันทร์โคจรรอบโลกและทำให้เกิดน้ำขึ้นน้ำลง',
-        'น้ำแข็งลอยน้ำได้เพราะเบากว่าน้ำในรูปของเหลว',
-        'ผึ้งช่วยผสมเกสรให้พืชหลายชนิดออกผล',
-        'ภาษาไทยเขียนติดกันโดยไม่เว้นวรรคระหว่างคำ',
-        'หัวใจสูบฉีดเลือดไปทั่วร่างกายตลอดเวลาโดยไม่หยุดพัก',
-        'ป่าชายเลนช่วยกันคลื่นและเป็นที่อนุบาลสัตว์น้ำวัยอ่อน',
+        { text: 'ช้างเป็นสัตว์บกที่ใหญ่ที่สุดในโลก',
+          childText: 'แมวของฉันชอบนอนใต้โต๊ะ' },
+        { text: 'ต้นไม้สร้างอาหารเองได้จากแสงแดดและน้ำ',
+          childText: 'วันนี้ครูให้การบ้านมาสองข้อ' },
+        { text: 'ดวงจันทร์โคจรรอบโลกและทำให้เกิดน้ำขึ้นน้ำลง',
+          childText: 'หมาน้อยวิ่งเล่นอยู่ในสวนหลังบ้าน' },
+        { text: 'น้ำแข็งลอยน้ำได้เพราะเบากว่าน้ำในรูปของเหลว',
+          childText: 'แม่ทำไข่เจียวให้กินตอนเช้า' },
+        { text: 'ผึ้งช่วยผสมเกสรให้พืชหลายชนิดออกผล',
+          childText: 'ฝนตกแรงจนออกไปเล่นข้างนอกไม่ได้' },
+        { text: 'ภาษาไทยเขียนติดกันโดยไม่เว้นวรรคระหว่างคำ',
+          childText: 'เพื่อนชวนไปเตะบอลที่สนามหลังเลิกเรียน' },
+        { text: 'หัวใจสูบฉีดเลือดไปทั่วร่างกายตลอดเวลาโดยไม่หยุดพัก',
+          childText: 'ฉันชอบอ่านนิทานก่อนนอนทุกคืน' },
+        { text: 'ป่าชายเลนช่วยกันคลื่นและเป็นที่อนุบาลสัตว์น้ำวัยอ่อน',
+          childText: 'ต้นไม้หน้าบ้านออกดอกสีเหลืองสวยมาก' },
       ],
     },
     {
@@ -176,12 +188,17 @@ const TH_KEDMANEE = [
       id: 9, name: 'ย่อหน้า', en: 'Paragraphs',
       keys: 'ทั้งหมด', goalWpm: 30,
       drills: [
-        'ป่าชายเลนเติบโตอยู่ตรงรอยต่อระหว่างแผ่นดินกับทะเล รากที่โผล่พ้นน้ำช่วยดักตะกอนและลดแรงคลื่นก่อนถึงชายฝั่ง ทั้งยังเป็นแหล่งอนุบาลของลูกปลาและปูจำนวนมาก',
-        'ดวงอาทิตย์ให้พลังงานแก่สิ่งมีชีวิตเกือบทั้งหมดบนโลก พืชเปลี่ยนแสงให้เป็นอาหารด้วยกระบวนการสังเคราะห์ด้วยแสง แล้วส่งต่อพลังงานนั้นไปยังสัตว์ที่กินพืชเป็นอาหารอีกทอดหนึ่ง',
-        'ข้าวเป็นพืชที่คนไทยปลูกกันมายาวนาน ตั้งแต่การตกกล้าไปจนถึงการเก็บเกี่ยว ทุกขั้นตอนต้องอาศัยน้ำ แสงแดด และการดูแลอย่างสม่ำเสมอตลอดทั้งฤดูกาล',
-        'ลมหนาวพัดผ่านทุ่งนาในตอนเช้า ต้นข้าวเอนไหวเป็นคลื่นสีทอง ชาวนาเดินออกจากบ้านพร้อมกับแสงแรกของวัน',
+        { text: 'ป่าชายเลนเติบโตอยู่ตรงรอยต่อระหว่างแผ่นดินกับทะเล รากที่โผล่พ้นน้ำช่วยดักตะกอนและลดแรงคลื่นก่อนถึงชายฝั่ง ทั้งยังเป็นแหล่งอนุบาลของลูกปลาและปูจำนวนมาก',
+          childText: 'แมวชอบนอนตอนกลางวันและตื่นตอนกลางคืน หนวดของแมวช่วยบอกว่าช่องแคบ ๆ นั้นลอดผ่านได้หรือไม่' },
+        { text: 'ดวงอาทิตย์ให้พลังงานแก่สิ่งมีชีวิตเกือบทั้งหมดบนโลก พืชเปลี่ยนแสงให้เป็นอาหารด้วยกระบวนการสังเคราะห์ด้วยแสง แล้วส่งต่อพลังงานนั้นไปยังสัตว์ที่กินพืชเป็นอาหารอีกทอดหนึ่ง',
+          childText: 'ผึ้งบินไปหาดอกไม้เพื่อเก็บน้ำหวาน ระหว่างนั้นเกสรก็ติดตัวไปด้วย ดอกไม้จึงกลายเป็นผลได้' },
+        { text: 'ข้าวเป็นพืชที่คนไทยปลูกกันมายาวนาน ตั้งแต่การตกกล้าไปจนถึงการเก็บเกี่ยว ทุกขั้นตอนต้องอาศัยน้ำ แสงแดด และการดูแลอย่างสม่ำเสมอตลอดทั้งฤดูกาล',
+          childText: 'ตอนเช้าเราเห็นดวงอาทิตย์ขึ้นทางทิศตะวันออก พอตกเย็นก็ลับไปทางทิศตะวันตกทุกวัน' },
+        { text: 'ลมหนาวพัดผ่านทุ่งนาในตอนเช้า ต้นข้าวเอนไหวเป็นคลื่นสีทอง ชาวนาเดินออกจากบ้านพร้อมกับแสงแรกของวัน',
+          childText: 'ก่อนนอนควรเก็บของเล่นให้เรียบร้อย พรุ่งนี้ตื่นมาห้องจะน่าอยู่และหาของได้ง่ายขึ้น' },
         'เมืองเล็ก ๆ ริมแม่น้ำตื่นขึ้นช้ากว่าที่อื่น เรือลำหนึ่งแล่นผ่านไปอย่างเงียบเชียบ ทิ้งริ้วคลื่นไว้ข้างหลัง',
-        'การพิมพ์ที่ดีไม่ได้วัดกันที่ความเร็วเพียงอย่างเดียว แต่วัดกันที่จังหวะที่สม่ำเสมอและความแม่นยำที่รักษาไว้ได้ตลอดทั้งย่อหน้า',
+        { text: 'การพิมพ์ที่ดีไม่ได้วัดกันที่ความเร็วเพียงอย่างเดียว แต่วัดกันที่จังหวะที่สม่ำเสมอและความแม่นยำที่รักษาไว้ได้ตลอดทั้งย่อหน้า',
+          childText: 'พิมพ์ช้าแต่ถูกดีกว่าพิมพ์เร็วแล้วผิด พอนิ้วจำที่อยู่ของปุ่มได้แล้ว ความเร็วจะตามมาเอง' },
         'ห้องสมุดในบ่ายวันอาทิตย์เงียบจนได้ยินเสียงพลิกหน้ากระดาษ แสงแดดลอดผ่านหน้าต่างลงมาเป็นแถบยาวบนพื้นไม้',
       ],
     },
@@ -412,10 +429,14 @@ const EN = [
         { focus: 'the most common letter patterns', text: 'the and ing tion est ent ion for' },
         { focus: 'longer patterns', text: 'ould ough ight sion ment ness able' },
         { focus: 'high-frequency endings', text: 'ver ith ate ell ill all ong ing' },
-        { focus: 'tricky words: the homophone traps', text: "their they're there its it's" },
-        { focus: 'tricky words: easily confused', text: 'lose loose desert dessert affect effect' },
-        { focus: 'tricky words: principle and the rest', text: 'principle principal weather whether' },
-        { focus: 'tricky words: commonly misspelled', text: 'definitely separate receive achieve necessary' },
+        { focus: 'tricky words: the homophone traps', text: "their they're there its it's",
+          childText: "their there its it's here hear" },
+        { focus: 'tricky words: easily confused', text: 'lose loose desert dessert affect effect',
+          childText: 'lose loose then than were where' },
+        { focus: 'tricky words: principle and the rest', text: 'principle principal weather whether',
+          childText: 'friend school because people little' },
+        { focus: 'tricky words: commonly misspelled', text: 'definitely separate receive achieve necessary',
+          childText: 'friend really beautiful favourite' },
         'the of and to in is you that it he',
         'was for on are as with his they at',
         'be this have from or one had by word',
@@ -429,23 +450,34 @@ const EN = [
       id: 8, name: 'Short sentences', en: 'full keyboard',
       keys: 'all', goalWpm: 38,
       drills: [
-        'The Pacific is the largest ocean on Earth.',
-        'Light from the sun takes about 8 minutes to reach us.',
-        'Water expands when it freezes, which is why ice floats.',
-        'Bamboo can grow almost a metre in a single day.',
-        'The Thai alphabet has 44 consonants and 32 vowel forms.',
-        'A hummingbird beats its wings about 50 times a second.',
-        'Honey found in ancient tombs was still safe to eat.',
-        'Accuracy first; speed is the reward that follows.',
+        { text: 'The Pacific is the largest ocean on Earth.',
+          childText: 'My cat likes to sleep under the table.' },
+        { text: 'Light from the sun takes about 8 minutes to reach us.',
+          childText: 'We played football at school today.' },
+        { text: 'Water expands when it freezes, which is why ice floats.',
+          childText: 'Mum made eggs for breakfast this morning.' },
+        { text: 'Bamboo can grow almost a metre in a single day.',
+          childText: 'The rain was too heavy to go outside.' },
+        { text: 'The Thai alphabet has 44 consonants and 32 vowel forms.',
+          childText: 'My friend has a small brown dog.' },
+        { text: 'A hummingbird beats its wings about 50 times a second.',
+          childText: 'I read a story before I go to sleep.' },
+        { text: 'Honey found in ancient tombs was still safe to eat.',
+          childText: 'The tree by our house has yellow flowers.' },
+        { text: 'Accuracy first; speed is the reward that follows.',
+          childText: 'Get it right first. Fast comes later.' },
       ],
     },
     {
       id: 9, name: 'Paragraphs', en: 'endurance',
       keys: 'all', goalWpm: 42,
       drills: [
-        'The Pacific Ocean covers about a third of the surface of the planet. Its deepest point lies nearly eleven kilometres down, far enough that the pressure there would crush almost anything built to float.',
-        'The morning light moved slowly across the wooden floor. Somewhere below, a door opened and closed, and the building began the long business of waking up.',
-        'Good typing is not about raw speed. It is about an even rhythm, a light touch, and the discipline to keep your eyes on the line ahead rather than on your hands.',
+        { text: 'The Pacific Ocean covers about a third of the surface of the planet. Its deepest point lies nearly eleven kilometres down, far enough that the pressure there would crush almost anything built to float.',
+          childText: 'Cats sleep for most of the day and wake up at night. Their whiskers tell them whether a narrow gap is wide enough to squeeze through.' },
+        { text: 'The morning light moved slowly across the wooden floor. Somewhere below, a door opened and closed, and the building began the long business of waking up.',
+          childText: 'A bee flies to a flower to collect nectar. Pollen sticks to its body along the way, and that is how the flower can grow into fruit.' },
+        { text: 'Good typing is not about raw speed. It is about an even rhythm, a light touch, and the discipline to keep your eyes on the line ahead rather than on your hands.',
+          childText: 'Typing slowly and getting it right beats typing fast and fixing it. Once your fingers know where the keys are, speed arrives on its own.' },
         'She had learned two keyboards in the same year, and for months her fingers argued with each other. Then one afternoon the argument simply stopped, and both layouts felt like one.',
         'A quiet library in the late afternoon is the best place to measure progress. There is nothing to hear except paper, and nothing to do except the next line.',
       ],
@@ -625,6 +657,21 @@ export const CHAPTERS = { th: TH_KEDMANEE, th_pat: TH_PATTACHOTE, en: EN };
 export const chapters = (lang) =>
   (lang === 'th' ? (thaiLayoutId() === 'pattachote' ? TH_PATTACHOTE : TH_KEDMANEE) : EN);
 
+// ── Age band ───────────────────────────────────────────────────────────────
+// Age changes the *words*, never the interface — a nine-year-old and an adult
+// get the same screens, the same keys and the same chapter numbering, but
+// chapters 7–9 read differently. Drill counts are identical in both bands on
+// purpose: a drill's index is part of its progress key, so swapping only the
+// text means stars, ghosts and cleared drills survive a change of band.
+let activeAge = 'adult';
+
+/** Returns the band actually applied. */
+export function setAgeBand(band) {
+  activeAge = band === 'child' ? 'child' : 'adult';
+  return activeAge;
+}
+export const ageBand = () => activeAge;
+
 export const chapter = (lang, id) => chapters(lang).find((c) => c.id === id) || chapters(lang)[0];
 
 const drillAt = (lang, chId, drillIx) => {
@@ -636,7 +683,10 @@ const drillAt = (lang, chId, drillIx) => {
 export const drillText = (lang, chId, drillIx) => {
   const d = drillAt(lang, chId, drillIx);
   if (typeof d === 'string') return d;
-  return d.tip ? null : d.text;
+  if (d.tip) return null;
+  // childText is optional: chapters 1–6 are mechanical key drills where the
+  // keys are the keys, so only 7–9 carry a second version.
+  return (activeAge === 'child' && d.childText) ? d.childText : d.text;
 };
 
 /** What this drill trains, or null for chapters that work on a whole row. */

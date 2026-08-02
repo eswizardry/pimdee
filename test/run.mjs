@@ -235,6 +235,89 @@ test('travel drills only use keys already taught', () => {
   }
 });
 
+// --- age bands -------------------------------------------------------------
+section('age bands');
+
+const withAge = (b, fn) => { C.setAgeBand(b); try { return fn(); } finally { C.setAgeBand('adult'); } };
+
+test('both bands have identical drill counts', () => {
+  // A drill's index is part of its progress key, so the counts must not differ
+  // or switching band would silently re-point every star and ghost.
+  for (const lang of ['th', 'en']) {
+    const adult = withAge('adult', () => C.chapters(lang).map((c) => c.drills.length).join('/'));
+    const child = withAge('child', () => C.chapters(lang).map((c) => c.drills.length).join('/'));
+    assert.equal(child, adult, lang);
+  }
+});
+
+test('chapters 1-6 are identical in both bands', () => {
+  // Those are mechanical key drills — the keys are the keys at any age.
+  for (const lang of ['th', 'en']) {
+    for (let ch = 1; ch <= 6; ch++) {
+      for (let i = 0; i < C.drillCount(lang, ch); i++) {
+        const a = withAge('adult', () => C.drillText(lang, ch, i));
+        const c = withAge('child', () => C.drillText(lang, ch, i));
+        assert.equal(c, a, `${lang} ch${ch}.${i}`);
+      }
+    }
+  }
+});
+
+test('the child band actually changes chapters 7-9', () => {
+  let changed = 0;
+  for (const lang of ['th', 'en']) {
+    for (const ch of [7, 8, 9]) {
+      for (let i = 0; i < C.drillCount(lang, ch); i++) {
+        const a = withAge('adult', () => C.drillText(lang, ch, i));
+        const c = withAge('child', () => C.drillText(lang, ch, i));
+        if (a !== c) changed++;
+      }
+    }
+  }
+  assert.ok(changed >= 20, `only ${changed} drills differ — the band is barely doing anything`);
+});
+
+test('child text obeys every invariant the adult text does', () => {
+  withAge('child', () => {
+    for (const layoutId of LAYOUTS) {
+      withLayout(layoutId, () => {
+        for (const lang of ['th', 'en']) {
+          for (const ch of C.chapters(lang)) {
+            for (let i = 0; i < ch.drills.length; i++) {
+              const t = C.drillText(lang, ch.id, i);
+              if (!t) continue;
+              assert.equal(L.clusters(t).map((c) => c.text).join(''), t, `${lang} ch${ch.id}.${i}`);
+              for (const c of L.clusters(t)) {
+                assert.ok(!L.isCombining(c.text[0]), `${lang} ch${ch.id}.${i} orphan "${c.text}"`);
+              }
+              for (const c of t) {
+                if (c !== ' ') assert.ok(L.lookupAny(lang, c), `${layoutId} ${lang} ch${ch.id}.${i} "${c}"`);
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+});
+
+test('Thai child text avoids Arabic digits too', () => {
+  withAge('child', () => {
+    for (const ch of C.chapters('th')) {
+      if (ch.id === 10) return;
+      for (let i = 0; i < ch.drills.length; i++) {
+        const t = C.drillText('th', ch.id, i);
+        if (t) assert.ok(!/[0-9]/.test(t), `th ch${ch.id}.${i}: "${t}"`);
+      }
+    }
+  });
+});
+
+test('an unknown band falls back to adult', () => {
+  assert.equal(C.setAgeBand('teenager'), 'adult');
+  assert.equal(C.ageBand(), 'adult');
+});
+
 // --- engine ----------------------------------------------------------------
 section('engine');
 

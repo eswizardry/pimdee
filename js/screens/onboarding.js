@@ -5,6 +5,7 @@ import { Engine, isTypingKey } from '../engine.js';
 import * as store from '../store.js';
 import { blip } from '../audio.js';
 import { setThaiLayout, wrongInputMethod } from '../layouts.js';
+import { setAgeBand } from '../content.js';
 
 const PLACEMENT = {
   th: 'แมวนอนกลางบ้านทั้งวันไม่ยอมไปไหน ฝนตกอยู่ข้างนอกตั้งแต่เช้า',
@@ -17,6 +18,7 @@ const STEP_LABELS = ['เลือกภาษา', 'แป้นพิมพ์
 export function onboardingScreen(_params, nav) {
   let step = 1;
   let langs = ['th', 'en'];
+  let ageBand = 'adult';
   let layout = 'kedmanee';
   let estimate = { th: 0, en: 0 };
   let goal = 5;
@@ -54,7 +56,11 @@ export function onboardingScreen(_params, nav) {
       ['th', 'ไทยอย่างเดียว', 'Thai only — Kedmanee layout', ['th']],
       ['en', 'English only', 'QWERTY only', ['en']],
     ];
-    return pane('ขั้นที่ 1 · เลือกภาษาที่จะฝึก',
+    const ages = [
+      ['child', 'เด็ก (อายุ 7–12 ปี)', 'Child — familiar words and short sentences'],
+      ['adult', 'วัยรุ่นและผู้ใหญ่ (13 ปีขึ้นไป)', 'Teen or adult — longer sentences and paragraphs'],
+    ];
+    return pane('ขั้นที่ 1 · ใครเรียน และเรียนภาษาอะไร',
       el('div.stack', { style: 'gap:12px' },
         opts.map(([id, th, en, value]) =>
           el('button.pick', {
@@ -65,6 +71,17 @@ export function onboardingScreen(_params, nav) {
               el('div', { style: 'font:600 14px/1.2 var(--th)' }, th),
               el('div', { style: 'font:400 11px/1.3 var(--en);color:var(--sub);margin-top:4px' }, en)),
             langs.join() === value.join() ? el('div.tick', {}, '✓') : null))),
+      el('div.eyebrow', { style: 'margin-top:24px' }, 'ผู้เรียน · WHO IS LEARNING'),
+      el('div.stack', { style: 'gap:12px;margin-top:12px' },
+        ages.map(([id, th, en]) =>
+          el('button.pick', {
+            class: ageBand === id ? 'on' : '',
+            onClick: () => { ageBand = id; setAgeBand(id); render(); },
+          },
+            el('div', {},
+              el('div', { style: 'font:600 14px/1.2 var(--th)' }, th),
+              el('div', { style: 'font:400 11px/1.3 var(--en);color:var(--sub);margin-top:4px' }, en)),
+            ageBand === id ? el('div.tick', {}, '✓') : null))),
       nextBtn(() => { step = 2; render(); }));
   }
 
@@ -89,7 +106,7 @@ export function onboardingScreen(_params, nav) {
               el('div', { style: 'font:400 11px/1.3 var(--th);color:var(--sub);margin-top:4px' }, en)),
             layout === id ? el('div.tick', {}, '✓') : null))),
       el('div.note', { style: 'margin-top:20px' },
-        'อายุผู้เรียนใช้กำหนดเนื้อหา ไม่ใช่หน้าตา — เด็กได้คำศัพท์ง่าย ผู้ใหญ่ได้ประโยคยาว ',
+        'อายุผู้เรียนใช้กำหนดเนื้อหา ไม่ใช่หน้าตา — เด็กได้คำศัพท์ง่ายในบทที่ 7–9 ผู้ใหญ่ได้ประโยคยาว เปลี่ยนได้ทีหลังในหน้าสถิติ ',
         el('span.dim', {}, '· age changes the word lists, never the UI')),
       nextBtn(() => { step = 3; render(); }));
   }
@@ -168,6 +185,7 @@ export function onboardingScreen(_params, nav) {
       store.update((st) => {
         st.onboarded = true;
         st.layout = setThaiLayout(layout);
+        st.ageBand = setAgeBand(ageBand);
         st.langs = langs;
         testLangs.forEach((l) => {
           const t = store.track(l);

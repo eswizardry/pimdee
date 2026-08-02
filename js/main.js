@@ -2,6 +2,7 @@
 
 import { el, clear } from './ui.js';
 import { setThaiLayout } from './layouts.js';
+import { setAgeBand } from './content.js';
 import * as store from './store.js';
 import { homeScreen } from './screens/home.js';
 import { journeyScreen } from './screens/journey.js';
@@ -121,6 +122,9 @@ window.addEventListener('keydown', (e) => {
 // showing a keyboard it has no table for.
 const applied = setThaiLayout(store.get().layout);
 if (applied !== store.get().layout) store.update((st) => { st.layout = applied; });
+
+const band = setAgeBand(store.get().ageBand);
+if (band !== store.get().ageBand) store.update((st) => { st.ageBand = band; });
 
 store.rollDay();
 render();
