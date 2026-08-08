@@ -143,13 +143,13 @@ function weakTile(nav) {
 const thaiGlyph = (keyId) => glyphForKey('th', keyId);
 
 function continueCard(nav) {
-  const s = store.get();
-  // resume whichever language is further behind
-  const lang = store.progressOf('th').points <= store.progressOf('en').points ? 'th' : 'en';
-  const p = store.progressOf(lang);
-  const chap = chapter(lang, p.chapter);
-  const total = drillCount(lang, p.chapter);
-  const go = () => nav(`#/practice/${lang}/${p.chapter}/${p.drill}`);
+  // Resume where you actually were. This used to pick whichever language was
+  // further behind on points, which handed a learner four lessons into Thai an
+  // English lesson 1 and called it "continue".
+  const { lang, chapterId, drill } = store.resumePoint();
+  const chap = chapter(lang, chapterId);
+  const total = drillCount(lang, chapterId);
+  const go = () => nav(`#/practice/${lang}/${chapterId}/${drill}`);
 
   const card = el('div.continue', {},
     mascot(66, 16),
@@ -158,9 +158,13 @@ function continueCard(nav) {
       el('div', { style: 'margin-top:8px;font:600 22px/1.2 var(--th)' },
         `บทที่ ${chap.id} — ${chap.name}`),
       el('div', { style: 'margin-top:5px;font:400 12.5px/1.4 var(--en);color:var(--sub)' },
-        `Chapter ${chap.id} — ${chap.en} · ${p.drill} of ${total} drills done · ${lang === 'th' ? 'ไทย' : 'English'}`)),
+        `Lesson ${chap.id} — ${chap.en} · part ${drill + 1} of ${total} · ${lang === 'th' ? 'ไทย' : 'English'}`)),
     el('div.stack', { style: 'gap:8px;align-items:flex-end' },
       el('button.btn', { onClick: go }, 'เล่นต่อ · Continue'),
+      el('button.btn-ghost', {
+        style: 'padding:8px 14px;font-size:12px',
+        onClick: () => nav(`#/lessons/${lang}/${chapterId}`),
+      }, 'เลือกตอน · Pick a part'),
       el('div', { style: 'font:400 11px/1 var(--mono);color:var(--dim)' }, '↵ ENTER')));
 
   card.enter = go;
@@ -168,8 +172,7 @@ function continueCard(nav) {
 }
 
 function ghostCard() {
-  const s = store.get();
-  const lang = store.progressOf('th').points <= store.progressOf('en').points ? 'th' : 'en';
+  const lang = store.resumeLang();
   const p = store.progressOf(lang);
   const you = store.avgOf(lang, 'wpm');
   const best = p.bestWpm;
@@ -196,7 +199,8 @@ const ghostRow = (label, value, pct, labelColor, fillColor) =>
 function quickCard(nav) {
   const s = store.get();
   const items = [
-    ['ซ้อมพิมพ์ 2 นาที', 'Drill · Thai Kedmanee', '1', () => nav('#/practice/th')],
+    ['ซ้อมพิมพ์ 2 นาที', `Drill · ${store.resumeLang() === 'th' ? 'Thai' : 'English'}`, '1',
+      () => nav(`#/practice/${store.resumeLang()}`)],
     ['อาร์เคด: คำร่วง', `Falling words · high score ${fmt(s.arcade.high)}`, '2', () => nav('#/arcade')],
     ['พิมพ์ตามเนื้อเพลง', `Lyrics mode · ${TRACKS.length} tracks`, '3', () => nav('#/lyrics')],
   ];
@@ -251,7 +255,7 @@ function denseHome(nav) {
       denseCell('เป้าวันนี้ TODAY', s.day.runs, `/${s.dailyGoal}`),
       denseCell('เวลาซ้อม TIME', `${Math.floor(s.day.seconds / 60)}:${String(s.day.seconds % 60).padStart(2, '0')}`, ''),
       el('div', { style: 'padding:20px 22px;display:flex;align-items:center;justify-content:flex-end' },
-        el('button.btn', { style: 'padding:12px 22px;font-size:13.5px', onClick: () => nav('#/practice/th') }, 'เริ่มซ้อม · Practice'))));
+        el('button.btn', { style: 'padding:12px 22px;font-size:13.5px', onClick: () => nav(`#/practice/${store.resumeLang()}`) }, 'เริ่มซ้อม · Practice'))));
 
   const body = el('div.dense-body', {},
     denseColumn('th'),
@@ -305,7 +309,7 @@ function denseColumn(lang) {
       kvRow('ความเร็ว', `${store.avgOf(lang, 'wpm')} wpm`),
       kvRow('ความแม่นยำ', `${store.avgOf(lang, 'acc') || 100}%`),
       kvRow('ปุ่มที่อ่อนที่สุด', weak.length ? weak.map((k) => lang === 'th' ? thaiGlyph(k.id) : k.id).join(' ') : '—', 'var(--red)'),
-      kvRow('บทถัดไป', `${chap.id} · ${chap.name}`, color)));
+      kvRow('บทที่กำลังเรียน', `${chap.id} · ${chap.name}`, color)));
 }
 
 const kvRow = (label, value, color) =>

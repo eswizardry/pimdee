@@ -1,48 +1,65 @@
 // 1e — Journey map. Two braided lanes (Thai above, English below) that meet at
-// the bilingual boss drill. Nodes are clickable when unlocked.
+// the bilingual boss drill. Nodes are clickable when unlocked, and open the
+// lesson's part list rather than dropping you straight into a drill — picking a
+// specific part is the whole point of having 27 lessons.
 
 import { el } from '../ui.js';
-import { chapter } from '../content.js';
+import { chapter, LESSON_COUNT, BOSS_ID } from '../content.js';
 import { isCombining } from '../layouts.js';
 import { adSlot } from '../ads.js';
 import * as store from '../store.js';
 
 /**
- * A chapter's emblem. Thai tone marks and above/below vowels can't stand alone
+ * A lesson's emblem. Thai tone marks and above/below vowels can't stand alone
  * (they render as a stray mark on a dotted circle), so skip to the first key
  * that has a shape of its own.
  */
 const emblem = (chap) => [...chap.keys].find((c) => !isCombining(c) && c !== ' ') || String(chap.id);
 
-const PAGE = 5; // chapters visible per screen
+const PAGE = 5; // lessons visible per screen
+const PAGES = Math.ceil(LESSON_COUNT / PAGE);
+
+const pageOf = (id) => Math.max(0, Math.min(PAGES - 1, Math.floor((id - 1) / PAGE)));
+const idsOn = (page) => [...Array(PAGE)]
+  .map((_, i) => page * PAGE + 1 + i)
+  .filter((i) => i <= LESSON_COUNT);
 
 export function journeyScreen(params, nav) {
   const focusLang = params.lang === 'en' ? 'en' : 'th';
-  const cur = store.progressOf(focusLang).chapter;
-  const page = Math.max(0, Math.min(1, Math.floor((cur - 1) / PAGE)));
-  return renderPage(page, nav);
+  return renderPage(pageOf(store.progressOf(focusLang).chapter), focusLang, nav);
 }
 
-function renderPage(page, nav) {
-  const start = page * PAGE + 1;
-  const ids = [...Array(PAGE)].map((_, i) => start + i).filter((i) => i <= 10);
+function renderPage(page, focusLang, nav) {
+  const ids = idsOn(page);
+  const last = page === PAGES - 1;
 
   const root = el('div.wrap', {});
   const head = el('div.spread', { style: 'align-items:flex-end;padding:0 4px 18px' },
     el('div', {},
-      el('div.eyebrow', {}, 'เส้นทางการเรียน · JOURNEY'),
+      el('div.eyebrow', {}, `เส้นทางการเรียน · JOURNEY · ${LESSON_COUNT} บท`),
       el('div', { style: 'margin-top:9px;font:600 26px/1.2 var(--th)' },
-        `บทที่ ${start}–${ids[ids.length - 1]} · ${chapter('th', start).name}ถึง${chapter('th', ids[ids.length - 1]).name}`)),
+        `บทที่ ${ids[0]}–${ids[ids.length - 1]}`),
+      el('div', { style: 'margin-top:5px;font:400 12.5px/1.4 var(--en);color:var(--sub)' },
+        `${chapter('th', ids[0]).name} → ${chapter('th', ids[ids.length - 1]).name}`)),
     el('div.row', { style: 'gap:18px;font:400 11px/1 var(--mono);color:var(--dim)' },
       legend('var(--lime)', 'ไทย TH', '50%'),
       legend('var(--sky)', 'อังกฤษ EN', '50%'),
-      legend('var(--violet)', 'บอส BOSS', '2px'),
-      el('div.row', { style: 'gap:6px;margin-left:8px' },
-        el('button.btn-ghost', { style: 'padding:6px 12px', disabled: page === 0, onClick: () => swap(0) }, '1–5'),
-        el('button.btn-ghost', { style: 'padding:6px 12px', disabled: page === 1, onClick: () => swap(1) }, '6–10'))));
+      legend('var(--violet)', 'บอส BOSS', '2px')));
+
+  // 27 lessons need a real pager, not the two buttons the 10-chapter map had.
+  const pager = el('div.row', { style: 'gap:6px;flex-wrap:wrap;padding:0 4px 16px' },
+    [...Array(PAGES)].map((_, p) => {
+      const range = idsOn(p);
+      return el('button.btn-ghost', {
+        style: 'padding:6px 12px',
+        class: p === page ? 'on' : '',
+        disabled: p === page,
+        onClick: () => swap(p),
+      }, `${range[0]}–${range[range.length - 1]}`);
+    }));
 
   function swap(p) {
-    const next = renderPage(p, nav);
+    const next = renderPage(p, focusLang, nav);
     root.unmount?.();
     root.replaceChildren(...next.childNodes);
     root.mount = next.mount;
@@ -52,8 +69,10 @@ function renderPage(page, nav) {
 
   const railTh = el('div.lane-line');
   const railEn = el('div.lane-line');
-  const grid = el('div.lane-grid', { style: `grid-template-columns:repeat(${ids.length},1fr)` },
-    ids.map((id) => column(id, nav)));
+  const columns = ids.map((id) => column(id, nav));
+  if (last) columns.push(bossColumn(nav));
+  const grid = el('div.lane-grid', { style: `grid-template-columns:repeat(${columns.length},1fr)` },
+    columns);
   const lanes = el('div.lanes', { style: 'padding:24px 6px 34px;position:relative' },
     railTh, railEn, grid);
 
@@ -74,6 +93,7 @@ function renderPage(page, nav) {
   };
 
   root.appendChild(head);
+  root.appendChild(pager);
   root.appendChild(lanes);
   const ad = adSlot('journeyFooter');
   if (ad) root.appendChild(ad);
@@ -91,7 +111,6 @@ const legend = (color, text, radius) =>
 function column(id, nav) {
   const thChap = chapter('th', id);
   const enChap = chapter('en', id);
-  if (thChap.boss) return bossColumn(id, nav);
 
   return el('div.stack', { style: 'gap:10px' },
     el('div', { style: 'height:60px;display:flex;align-items:center;justify-content:center' },
@@ -131,7 +150,9 @@ function laneNode(lang, id, chap, nav) {
     class: cls,
     style: lang === 'en' ? 'font-family:var(--mono)' : '',
     title: `${chap.name} — ${prog.done}/${prog.total}`,
-    onClick: unlocked ? () => nav(`#/practice/${lang}/${id}/${Math.min(prog.done, prog.total - 1)}`) : null,
+    // Opens the part list, so any single part can be replayed. Going straight
+    // into a drill is what made it impossible to revisit one.
+    onClick: unlocked ? () => nav(`#/lessons/${lang}/${id}`) : null,
   }, glyph);
 
   if (state === 'current' || state === 'partial') {
@@ -140,7 +161,7 @@ function laneNode(lang, id, chap, nav) {
     }, `${prog.done}/${prog.total}`));
   }
 
-  // Mastery, not just completion: how many of the chapter's stars are earned.
+  // Mastery, not just completion: how many of the lesson's stars are earned.
   const cs = store.chapterStars(lang, id);
   if (unlocked && cs.earned > 0) {
     node.appendChild(el('span.node-stars', {
@@ -157,14 +178,14 @@ function caption(lang, chap) {
   const dim = state === 'locked' || state === 'next';
   const color = state === 'current' ? (lang === 'th' ? 'var(--lime)' : 'var(--sky)') : dim ? 'var(--dim)' : 'var(--text)';
   return el('div', { style: `text-align:center;font:${state === 'current' ? 600 : 500} 12.5px/1.35 var(--${lang === 'th' ? 'th' : 'en'});color:${color}` },
-    lang === 'th' ? chap.name : chap.name,
+    chap.name,
     el('div', { style: 'font:400 10.5px/1.3 var(--en);color:var(--dim);margin-top:4px' },
-      lang === 'th' ? chap.en : chap.en));
+      chap.en));
 }
 
-function bossColumn(id, nav) {
-  const thDone = store.chapterState('th', id - 1) === 'done';
-  const enDone = store.chapterState('en', id - 1) === 'done';
+function bossColumn(nav) {
+  const thDone = store.chapterState('th', LESSON_COUNT) === 'done';
+  const enDone = store.chapterState('en', LESSON_COUNT) === 'done';
   const unlocked = thDone && enDone;
 
   return el('div.stack', { style: 'gap:10px' },
@@ -175,8 +196,8 @@ function bossColumn(id, nav) {
         'TH', el('span', { style: 'font-size:11px' }, '/'), 'EN'),
       el('div', { style: 'font:600 14px/1.35 var(--th)' }, 'ด่านผสมสองภาษา'),
       el('div', { style: 'font:400 11px/1.4 var(--en);color:var(--sub)' },
-        'Switch languages mid-sentence. Unlocks after chapter 9 in both.'),
+        `Switch languages mid-sentence. Unlocks after lesson ${LESSON_COUNT} in both.`),
       unlocked
-        ? el('button.btn', { style: 'padding:8px 16px;font-size:12px', onClick: () => nav(`#/practice/th/10/0`) }, 'เข้าด่าน · Enter')
+        ? el('button.btn', { style: 'padding:8px 16px;font-size:12px', onClick: () => nav(`#/lessons/th/${BOSS_ID}`) }, 'เข้าด่าน · Enter')
         : el('div', { style: 'padding:7px 14px;border-radius:6px;border:1px solid var(--dim-3);font:500 11px/1 var(--mono);color:var(--dim)' }, 'ล็อก LOCKED')));
 }

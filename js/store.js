@@ -1,7 +1,7 @@
 // Progress store. Everything lives in one localStorage key so a run is
 // resumable across reloads; both languages roll into one combined score.
 
-import { chapters, chapter, drillCount, typedDrillCount } from './content.js';
+import { chapter, drillCount, typedDrillCount, LESSON_COUNT } from './content.js';
 import { thaiLayoutId } from './layouts.js';
 
 /**
@@ -13,7 +13,12 @@ import { thaiLayoutId } from './layouts.js';
 export const track = (lang) =>
   (lang === 'th' ? (thaiLayoutId() === 'pattachote' ? 'th_pat' : 'th') : 'en');
 
+// Bumped to 2 for the 27-lesson curriculum. Every cleared part, star and ghost
+// is keyed "lesson:part", and the rebuild moved every one of those boundaries —
+// so a v1 record cannot be carried forward without lying about what was learned.
+// migrate() drops it and the learner starts again at lesson 1.
 const KEY = 'tuktype.v1';
+const VERSION = 2;
 const today = () => new Date().toISOString().slice(0, 10);
 
 const blankLang = () => ({
@@ -28,12 +33,15 @@ const blankLang = () => ({
 });
 
 const blank = () => ({
-  v: 1,
+  v: VERSION,
   onboarded: false,
   name: 'พ',
   layout: 'kedmanee',
   ageBand: 'adult',   // 'child' | 'adult' — changes the words, never the UI
   langs: ['th', 'en'],
+  // Which language you were last actually typing in. Resume reads this rather
+  // than guessing from the scores, which used to send a Thai learner to English.
+  lastLang: 'th',
   sound: true,
   haptics: true,
   showKeyboard: true,
@@ -51,7 +59,7 @@ const blank = () => ({
 
 function migrate(raw) {
   const base = blank();
-  if (!raw || raw.v !== 1) return base;
+  if (!raw || raw.v !== VERSION) return base;
   const s = { ...base, ...raw };
   s.progress = {
     th: { ...blankLang(), ...(raw.progress?.th || {}) },
@@ -133,6 +141,26 @@ export function tier() {
   return { ...TIERS[i], index: i + 1 };
 }
 
+/**
+ * The language to resume in. This used to be inferred from the scores — resume
+ * whichever language is further behind — which meant a learner four lessons into
+ * Thai was handed English lesson 1 and told to continue. It is now simply the
+ * last language actually typed in, narrowed to what the learner signed up for.
+ */
+export function resumeLang() {
+  const wanted = state.langs && state.langs.length ? state.langs : ['th', 'en'];
+  return wanted.includes(state.lastLang) ? state.lastLang : wanted[0];
+}
+
+/** Where `resumeLang()` left off: its language, lesson and part. */
+export function resumePoint() {
+  const lang = resumeLang();
+  const p = progressOf(lang);
+  return { lang, chapterId: p.chapter, drill: p.drill };
+}
+
+const noteLang = (lang) => { state.lastLang = lang === 'en' ? 'en' : 'th'; };
+
 export const isCleared = (lang, ch, drill) =>
   progressOf(lang).cleared.includes(`${ch}:${drill}`);
 
@@ -196,12 +224,15 @@ export function chapterStars(lang, ch) {
  */
 export function commitTip({ lang, chapterId, drill }) {
   rollDay();
+  noteLang(lang);
   const p = progressOf(lang);
   if (!isCleared(lang, chapterId, drill)) p.cleared.push(`${chapterId}:${drill}`);
   const total = drillCount(lang, chapterId);
   const next = drill + 1;
   if (next >= total) {
-    p.chapter = Math.min(chapters(lang).length, chapterId + 1);
+    // Capped at the last teaching lesson: the bilingual boss needs both languages
+    // finished, so the cursor must never drift onto it on its own.
+    p.chapter = Math.min(LESSON_COUNT, chapterId + 1);
     p.drill = 0;
   } else if (chapterId === p.chapter) {
     p.drill = Math.max(p.drill, next);
@@ -223,6 +254,7 @@ export function scoreRun({ wpm, acc, chapterId, drill, lang }) {
 /** Commit a finished drill and advance the cursor. Returns a result summary. */
 export function commitRun({ lang, chapterId, drill, wpm, acc, seconds, combo, samples, keyHits, keyMisses }) {
   rollDay();
+  noteLang(lang);
   const p = progressOf(lang);
   const gk = ghostKey(lang, chapterId, drill);
   const prevGhost = state.ghosts[gk] || 0;
@@ -237,8 +269,7 @@ export function commitRun({ lang, chapterId, drill, wpm, acc, seconds, combo, sa
     const total = drillCount(lang, chapterId);
     const nextDrill = drill + 1;
     if (nextDrill >= total) {
-      const maxCh = chapters(lang).length;
-      p.chapter = Math.min(maxCh, chapterId + 1);
+      p.chapter = Math.min(LESSON_COUNT, chapterId + 1);
       p.drill = 0;
     } else if (chapterId === p.chapter) {
       p.drill = Math.max(p.drill, nextDrill);
@@ -328,6 +359,7 @@ export const avgOf = (lang, field) => {
  */
 export function commitDynamic({ lang, wpm, acc, seconds, combo, samples, keyHits, keyMisses }) {
   rollDay();
+  noteLang(lang);
   const p = progressOf(lang);
   const passed = acc >= PASS_ACCURACY;
   const points = Math.max(1, Math.round((wpm * (acc / 100) * (acc / 100)) / 2));
@@ -379,7 +411,7 @@ export function importJSON(text) {
   let raw;
   try { raw = JSON.parse(text); } catch { return { ok: false, reason: 'ไฟล์ไม่ใช่ JSON ที่อ่านได้' }; }
   if (!raw || typeof raw !== 'object') return { ok: false, reason: 'ไฟล์ว่างหรือรูปแบบไม่ถูกต้อง' };
-  if (raw.v !== 1) return { ok: false, reason: `ไฟล์เวอร์ชัน ${raw.v ?? '?'} ไม่ตรงกับเวอร์ชัน 1` };
+  if (raw.v !== VERSION) return { ok: false, reason: `ไฟล์เวอร์ชัน ${raw.v ?? '?'} ไม่ตรงกับเวอร์ชัน ${VERSION}` };
   if (!raw.progress || typeof raw.progress !== 'object') return { ok: false, reason: 'ไม่พบข้อมูลความคืบหน้าในไฟล์' };
   state = migrate(raw);
   persist();

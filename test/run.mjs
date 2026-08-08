@@ -194,11 +194,95 @@ test('every chapter has an id, a goal and at least one typed drill', () => {
   }
 });
 
+test('every curriculum is 27 lessons plus the boss', () => {
+  for (const layoutId of LAYOUTS) {
+    withLayout(layoutId, () => {
+      for (const lang of ['th', 'en']) {
+        const ids = C.chapters(lang).map((c) => c.id);
+        assert.deepEqual(
+          ids,
+          [...Array(C.LESSON_COUNT)].map((_, i) => i + 1).concat(C.BOSS_ID),
+          `${layoutId} ${lang} lesson ids`,
+        );
+      }
+    });
+  }
+});
+
+test('every lesson has at least six parts and none of them is empty', () => {
+  for (const layoutId of LAYOUTS) {
+    withLayout(layoutId, () => {
+      for (const lang of ['th', 'en']) {
+        for (const ch of C.chapters(lang)) {
+          assert.ok(ch.drills.length >= 5, `${layoutId} ${lang} L${ch.id} has ${ch.drills.length} parts`);
+          ch.drills.forEach((d, i) => {
+            if (typeof d !== 'string' && d.tip) return;
+            const t = textOf(d);
+            assert.ok(t && t.trim().length >= 4, `${layoutId} ${lang} L${ch.id}.${i} empty: ${JSON.stringify(t)}`);
+          });
+        }
+      }
+    });
+  }
+});
+
+test('the generated lessons ramp gently: no more than six new keys before the shift layer', () => {
+  for (const layoutId of LAYOUTS) {
+    withLayout(layoutId, () => {
+      for (const lang of ['th', 'en']) {
+        const seen = new Set();
+        for (const ch of C.chapters(lang)) {
+          if (ch.id > 22) break; // 23-24 teach the shift layer in batches, by design
+          const fresh = [...ch.keys].filter((g) => !seen.has(g));
+          assert.ok(fresh.length <= 6, `${layoutId} ${lang} L${ch.id} introduces ${fresh.length} keys`);
+          [...ch.keys].forEach((g) => seen.add(g));
+        }
+      }
+    });
+  }
+});
+
+test('the whole layout is taught by the end of the shift lessons', () => {
+  for (const layoutId of LAYOUTS) {
+    withLayout(layoutId, () => {
+      for (const lang of ['th', 'en']) {
+        const taught = new Set();
+        for (const ch of C.chapters(lang)) {
+          if (ch.id > 24) break;
+          [...ch.keys].forEach((g) => taught.add(g));
+        }
+        for (const g of L.glyphsFor(lang)) {
+          if (g === ' ') continue;
+          assert.ok(taught.has(g), `${layoutId} ${lang} never teaches "${g}"`);
+        }
+      }
+    });
+  }
+});
+
+test('every part carries a label the picker can show', () => {
+  for (const lang of ['th', 'en']) {
+    for (const ch of C.chapters(lang)) {
+      for (let i = 0; i < ch.drills.length; i++) {
+        const label = C.drillLabel(lang, ch.id, i);
+        assert.ok(label && label.th && label.th.length, `${lang} L${ch.id}.${i} has no label`);
+      }
+    }
+  }
+});
+
+test('generation is deterministic: the same lesson builds the same text twice', () => {
+  const once = C.drillText('th', 3, 1);
+  L.setThaiLayout('pattachote');
+  L.setThaiLayout('kedmanee');
+  assert.equal(C.drillText('th', 3, 1), once);
+});
+
 test('Thai lesson text avoids Arabic digits (not on the Thai layout)', () => {
   for (const layoutId of LAYOUTS) {
     withLayout(layoutId, () => {
       for (const ch of C.chapters('th')) {
-        if (ch.id === 10) continue; // the bilingual boss drill switches on purpose
+        if (ch.id === C.BOSS_ID) continue; // the bilingual boss drill switches on purpose
         for (const d of ch.drills) {
           const t = textOf(d);
           if (t) assert.ok(!/[0-9]/.test(t), `${layoutId} th ch${ch.id}: "${t}"`);
@@ -263,10 +347,10 @@ test('chapters 1-6 are identical in both bands', () => {
   }
 });
 
-test('the child band actually changes chapters 7-9', () => {
+test('the child band actually changes the authored lessons', () => {
   let changed = 0;
   for (const lang of ['th', 'en']) {
-    for (const ch of [7, 8, 9]) {
+    for (const ch of [25, 26, 27]) {
       for (let i = 0; i < C.drillCount(lang, ch); i++) {
         const a = withAge('adult', () => C.drillText(lang, ch, i));
         const c = withAge('child', () => C.drillText(lang, ch, i));
@@ -304,7 +388,7 @@ test('child text obeys every invariant the adult text does', () => {
 test('Thai child text avoids Arabic digits too', () => {
   withAge('child', () => {
     for (const ch of C.chapters('th')) {
-      if (ch.id === 10) return;
+      if (ch.id === C.BOSS_ID) continue;
       for (let i = 0; i < ch.drills.length; i++) {
         const t = C.drillText('th', ch.id, i);
         if (t) assert.ok(!/[0-9]/.test(t), `th ch${ch.id}.${i}: "${t}"`);
@@ -406,14 +490,17 @@ test('press is ignored past the end', () => {
 section('stars');
 
 test('accuracy gates every star tier', () => {
-  const at = (acc, wpm) => S.starsFor({ lang: 'en', chapterId: 1, wpm, acc }); // goal 20
-  assert.equal(at(99, 25), 5);
-  assert.equal(at(98, 20), 5);
-  assert.equal(at(98, 19), 4, 'just under the speed goal');
-  assert.equal(at(96, 17), 4);
-  assert.equal(at(93, 13), 3);
-  assert.equal(at(89, 9), 2);
-  assert.equal(at(86, 2), 1);
+  // Derived from the lesson's own goal rather than hardcoded, so retuning the
+  // goal ramp cannot silently stop exercising the tiers.
+  const goal = S.goalWpm('en', 1);
+  const at = (acc, ratio) => S.starsFor({ lang: 'en', chapterId: 1, wpm: goal * ratio, acc });
+  assert.equal(at(99, 1.25), 5);
+  assert.equal(at(98, 1.0), 5);
+  assert.equal(at(98, 0.95), 4, 'just under the speed goal');
+  assert.equal(at(96, 0.85), 4);
+  assert.equal(at(93, 0.65), 3);
+  assert.equal(at(89, 0.45), 2);
+  assert.equal(at(86, 0.1), 1);
 });
 
 test('speed cannot buy a star: below 85% accuracy scores zero', () => {
@@ -559,6 +646,83 @@ test('the break prompt fires once per session and resets on acknowledge', () => 
   assert.equal(S.shouldSuggestBreak(), false, 'not shown twice');
   S.ackBreak();
   assert.equal(S.sessionStats().drills, 0);
+});
+
+test('a v1 record is dropped rather than carried into the 27-lesson curriculum', () => {
+  // Every cleared part, star and ghost was keyed "chapter:drill" against the old
+  // 10-chapter shape, so importing one would claim lessons that were never done.
+  const v1 = JSON.stringify({
+    v: 1, onboarded: true,
+    progress: { th: { chapter: 4, drill: 3, cleared: ['1:1'], points: 220 } },
+    stars: { 'th:1:1': 5 },
+  });
+  const r = S.importJSON(v1);
+  assert.equal(r.ok, false, 'a v1 file must be refused, not half-applied');
+  assert.match(r.reason, /2/);
+});
+
+test('resume returns the language you last typed in, not the one with fewer points', () => {
+  fresh();
+  // Put the Thai cursor on lesson 5, then finish part 3 of it. English is left
+  // untouched and far behind — the old rule would have resumed English lesson 1.
+  S.update((st) => { st.progress.th.chapter = 5; st.progress.th.drill = 2; });
+  S.commitRun({
+    lang: 'th', chapterId: 5, drill: 2, wpm: 40, acc: 100, seconds: 30,
+    combo: 10, samples: [], keyHits: {}, keyMisses: {},
+  });
+  assert.equal(S.progressOf('en').points, 0, 'English really is behind');
+  assert.equal(S.resumeLang(), 'th');
+  const at = S.resumePoint();
+  assert.equal(at.lang, 'th');
+  assert.equal(at.chapterId, 5, 'still inside lesson 5');
+  assert.equal(at.drill, 3, 'moved on to the next part');
+});
+
+test('replaying an earlier part does not drag the cursor backwards', () => {
+  fresh();
+  S.update((st) => { st.progress.th.chapter = 5; st.progress.th.drill = 2; });
+  S.commitRun({
+    lang: 'th', chapterId: 2, drill: 0, wpm: 40, acc: 100, seconds: 20,
+    combo: 5, samples: [], keyHits: {}, keyMisses: {},
+  });
+  const at = S.resumePoint();
+  assert.equal(at.chapterId, 5, 'redoing lesson 2 must not send you back to lesson 2');
+  assert.equal(at.drill, 2);
+});
+
+test('resume follows a switch of language', () => {
+  fresh();
+  S.commitRun({
+    lang: 'th', chapterId: 2, drill: 1, wpm: 40, acc: 100, seconds: 30,
+    combo: 5, samples: [], keyHits: {}, keyMisses: {},
+  });
+  S.commitRun({
+    lang: 'en', chapterId: 3, drill: 0, wpm: 40, acc: 100, seconds: 30,
+    combo: 5, samples: [], keyHits: {}, keyMisses: {},
+  });
+  assert.equal(S.resumeLang(), 'en');
+});
+
+test('resume never offers a language the learner did not sign up for', () => {
+  fresh();
+  S.update((st) => { st.langs = ['th']; st.lastLang = 'en'; });
+  assert.equal(S.resumeLang(), 'th');
+});
+
+test('the lesson cursor stops at 27 and never drifts onto the boss', () => {
+  fresh();
+  const total = C.drillCount('th', C.LESSON_COUNT);
+  for (let d = 0; d < total; d++) {
+    if (C.drillTip('th', C.LESSON_COUNT, d)) {
+      S.commitTip({ lang: 'th', chapterId: C.LESSON_COUNT, drill: d });
+    } else {
+      S.commitRun({
+        lang: 'th', chapterId: C.LESSON_COUNT, drill: d, wpm: 40, acc: 100, seconds: 20,
+        combo: 5, samples: [], keyHits: {}, keyMisses: {},
+      });
+    }
+  }
+  assert.equal(S.progressOf('th').chapter, C.LESSON_COUNT, 'cursor stayed on the last lesson');
 });
 
 // --- generated drills ------------------------------------------------------

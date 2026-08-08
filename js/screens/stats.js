@@ -42,8 +42,8 @@ export function statsScreen(_params, nav) {
 }
 
 /**
- * Age changes the words in chapters 7–9 only, and drill counts are identical in
- * both bands — so switching keeps every star, ghost and cleared drill.
+ * Age changes the words in the authored lessons 25–27 only, and part counts are
+ * identical in both bands — so switching keeps every star, ghost and cleared part.
  */
 function ageSwitcher(nav) {
   const cur = ageBand();
@@ -51,7 +51,7 @@ function ageSwitcher(nav) {
     [['child', 'เด็ก'], ['adult', 'ผู้ใหญ่']].map(([id, label]) =>
       el('button', {
         class: id === cur ? 'on' : '',
-        title: id === 'child' ? 'คำง่าย ประโยคสั้น (บทที่ 7–9)' : 'ประโยคยาวและย่อหน้า (บทที่ 7–9)',
+        title: id === 'child' ? 'คำง่าย ประโยคสั้น (บทที่ 25–27)' : 'ประโยคยาวและย่อหน้า (บทที่ 25–27)',
         onClick: () => {
           if (id === cur) return;
           store.update((st) => { st.ageBand = setAgeBand(id); });

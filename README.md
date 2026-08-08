@@ -23,7 +23,7 @@ ES modules require an HTTP origin.
 node test/run.mjs          # no dependencies, no install
 ```
 
-61 tests over the parts where a mistake is invisible in review and obvious to a
+79 tests over the parts where a mistake is invisible in review and obvious to a
 learner: layout tables (row alignment, no duplicate glyphs, every glyph
 reachable, standard finger assignment), curriculum invariants run separately for
 **each Thai layout** (no untaught keys, nothing unreachable, no orphaned tone
@@ -31,7 +31,12 @@ marks, keys introduced before use, no Arabic digits in Thai lesson text), the
 typing engine (accuracy, combo, backspace refunds, cluster-aware cursor, the
 live-wpm guard not leaking into recorded results), star thresholds, and store
 behaviour (per-layout progress tracks, tips earning nothing, dynamic practice not
-advancing chapters, import validation).
+advancing lessons, import validation), plus the invariants the 27-lesson rebuild
+depends on: every curriculum is 27 lessons plus the boss, every lesson has at
+least six non-empty parts, no lesson before the shift layer introduces more than
+six keys, the whole layout is taught by lesson 24, generation is deterministic,
+resume returns the last language typed rather than the one with fewer points, and
+a v1 record is refused rather than half-applied.
 
 The suite was checked against deliberate regressions — a dropped glyph, an
 untaught key in a drill, letting speed override accuracy, backspace not
@@ -42,9 +47,10 @@ each by the test that should catch it.
 
 | Route | Design | What it does |
 |---|---|---|
-| `#/onboarding` | 1h | 4 steps; a 30-second placement test per language sets each starting chapter |
+| `#/onboarding` | 1h | 4 steps; a 30-second placement test per language sets each starting lesson, with an explicit "start from lesson 1" escape |
 | `#/home` | 1a / 1b | Combined score, per-language stats, streak, weak keys, continue card. "Dense" toggles the 1b layout |
-| `#/lessons` | 1e | Braided journey map — Thai lane above, English below, bilingual boss at chapter 10 |
+| `#/lessons` | 1e | Braided journey map — Thai lane above, English below, paged 5 lessons at a time, bilingual boss after lesson 27 |
+| `#/lessons/:lang/:id` | — | One lesson's parts, each directly playable: stars, best wpm and a text preview per part |
 | `#/practice/:lang/:ch/:drill` | 1c | The typing engine: live heatmap, ghost pacer, reacting mascot, audio |
 | `#/results` | 1g | You vs the ghost of your best run, where you slipped, score movement |
 | `#/arcade` | 1f | คำร่วง / Falling Words — mixed-script arcade mode |
@@ -57,7 +63,7 @@ each by the test that should catch it.
 js/
   hands.js     Animated hands — next-finger highlight + press animation
   layouts.js   Kedmanee + Pattachote + QWERTY maps, finger map, cross-layout lookup, clustering
-  content.js   Curricula: 10 chapters per language (Thai has one per layout), arcade pool, verse
+  content.js   Curricula: 27 lessons per language (Thai has one per layout) + generator, arcade pool, verse
   tips.js      Teaching cards — animated hands/mascot instead of video
   ads.js       Reserved AdSense placements (off by default)
   engine.js    Typing engine — keystrokes, accuracy, combo, rolling-wpm samples
@@ -78,25 +84,50 @@ form, so display groups them into clusters (`layouts.clusters`) and keycaps carr
 them on a dotted circle (`layouts.capGlyph`) — otherwise the browser draws a
 placeholder circle and the text looks broken.
 
-**Every key chapter (1–6) adds one mirrored finger pair per drill** — the same
-finger on both hands at once, so each lesson teaches one motion rather than two.
-Thai chapter 1 opens on ก/า (the middle fingers) because that spells a real word,
-`กา`, from two visible letters on lesson one. Numbers pair inwards from the index
-fingers (4&7, 3&8, 2&9, 1&0, 5&6).
+**Each lesson adds about two keys, as a mirrored finger pair** — the same finger
+on both hands at once, so a lesson teaches one motion rather than twelve. Thai
+lesson 1 opens on ก/า (the middle fingers) because that spells a real word, `กา`,
+from two visible letters on the first lesson.
 
-A chapter tagged `mechanic: true` teaches a technique rather than a key set —
+| Lessons | Covers |
+|---|---|
+| 1–6 | home row, one finger pair at a time |
+| 7–12 | top row |
+| 13–17 | bottom row |
+| 18–22 | number row |
+| 23–24 | shift layer, in batches |
+| 25–27 | common words, short sentences, paragraphs |
+| 28 | bilingual boss — unlocks when both languages finish 27 |
+
+A lesson tagged `mechanic: true` teaches a technique rather than a key set —
 English "Capitals" is shift applied to letters already known — so the
 introduce-in-order rule does not apply to it.
 
-Thai chapter 3 introduces **no new keys**: `่ ้` come from the home row and `ั ี`
-from the top row. Thai's real difficulty is stacking a vowel and a tone on one
-consonant, so that chapter drills only that. The bottom-row vowels `ิ ื` moved to
-chapter 4, where they physically live (b and n), and `ุ ึ` to chapter 5.
+**The six parts are generated, not hand-written.** 27 lessons x 6 parts x 3
+curricula is far too many drills to author by hand, and every one of them must
+avoid keys the learner has not met. So a lesson definition carries only its new
+keys, and `buildParts` emits: the new keys in isolation, the new keys against
+settled home-row anchors, the new keys mixed with everything taught so far, then
+words, words repeated, and a review. Generation is deterministic — a small seeded
+generator, never `Math.random` — because a ghost lap and a star have to mean the
+same thing on the next reload.
 
-Each key-chapter drill carries a `focus` label naming the fingers it trains,
-shown under the drill counter. A drill is a plain string, `{ text, focus }`, or
-`{ tip }`. Thai tone marks never appear alone in a drill — they always sit on a
-consonant (`ก่า`, not `่`).
+Words come from a per-curriculum **pool**: the generator keeps the entries that
+use only taught glyphs *and* contain at least one new key, so validity is a
+property of the build rather than of proof-reading. Lessons whose new keys are
+digits or symbols name their own material instead (`words:` on the definition),
+because no dictionary word contains a backtick. The first few lessons, where
+almost nothing is spellable, fall back to generated syllable groups — which is
+what a paper course does too.
+
+The shift lessons use `keys: '*'`, meaning every glyph of the layout not yet
+taught. Computed from the layout table, so lessons 25–27 can use unrestricted
+real text and the "no untaught key" invariant still holds.
+
+Each generated part carries a `focus` label naming what it trains, shown under the
+part counter and reused as the row label in the lesson picker. A part is a plain
+string, `{ text, focus }`, or `{ tip }`. Thai tone marks never appear alone —
+they always sit on a consonant (`ก่า`, not `่`).
 
 **The hands teach fingering, not just position.** Under the keyboard, the finger
 that should press the next key lights up in that finger's colour (matching the
@@ -104,18 +135,18 @@ keycap's bottom edge), and dips on each keystroke — red if you missed. Shift i
 shown in violet on the pinky of the *opposite* hand, since reaching for both with
 one hand is the habit touch typing exists to prevent. Space lights both thumbs.
 The finger map is standard touch-typing assignment (`FINGER_COLS` in
-`layouts.js`); the hands follow the layout flip in chapter 10 too.
+`layouts.js`); the hands follow the layout flip in the boss lesson too.
 
-**Chapter 10 is deliberately mixed-script.** `layouts.lookupAny` falls back to the
+**The boss lesson is deliberately mixed-script.** `layouts.lookupAny` falls back to the
 other layout, so the keyboard panel flips between KEDMANEE and QWERTY mid-sentence
 and key stats land on the right heatmap.
 
 ## Progress rules
 
 - Every drill is scored **0–5 stars**. Accuracy gates each tier and speed only
-  decides how far up you go, measured against the chapter's `goalWpm`:
+  decides how far up you go, measured against the lesson's `goalWpm`:
 
-  | Stars | Accuracy | Speed vs. chapter goal |
+  | Stars | Accuracy | Speed vs. lesson goal |
   |---|---|---|
   | 5 | ≥98% | ≥100% |
   | 4 | ≥95% | ≥80% |
@@ -126,35 +157,34 @@ and key stats land on the right heatmap.
 
   You cannot buy stars with speed: 84% accuracy at 40 wpm scores zero. Stars only
   ever go up, so a lazy replay can't take away a 5 you already earned.
-- **0 stars = not cleared** — the chapter does not advance and no ghost is set.
-- Points = speed × accuracy², plus a first-clear bonus that grows with chapter.
+- **0 stars = not cleared** — the lesson does not advance and no ghost is set.
+- Points = speed × accuracy², plus a first-clear bonus that grows with the lesson.
+- **Any part of any unlocked lesson is replayable** from `#/lessons/:lang/:id`, and
+  the practice screen has a part stepper. Replaying an earlier part never drags
+  the cursor backwards.
 
 ## Lesson types
 
 Beyond the ordinary drills:
 
-- **Travel drills** (`travelDrills` in `content.js`) — one finger moving up and
-  down its own column, appended to the row-learning chapters (2, 4, 5). Generated
-  from the finger map, and filtered to keys already taught, so they stay correct
-  if a layout changes. Thai tone marks ride a `ก` carrier.
-- **Common patterns** — the shapes that recur constantly, at the head of chapter 7.
+- **Common patterns** — the shapes that recur constantly, at the head of lesson 25.
   Thai gets `เ–ีย`, `ั` + `ง`, `–ือ` and `ร` clusters; English gets `the/ing/tion`.
-- **Content-bearing drills** — chapter 8 types facts rather than filler, so the
+- **Content-bearing drills** — lesson 26 types facts rather than filler, so the
   sentence is worth reading while the hands work. The Thai ones deliberately
   contain no Arabic numerals: those are not on the Kedmanee layout at all, and
-  forcing a script switch belongs in the chapter 10 boss drill.
+  forcing a script switch belongs in the boss lesson.
 - **Teaching cards** (`tips.js`) — the habit-and-ergonomics lessons a course
   needs between drills: home position, the bumps on ด/`่`, don't look down,
   accuracy before speed, posture, breaks, shift with the opposite pinky, think
   in words. They sit in the drill
   sequence as `{ tip: 'home' }` and are read rather than typed, so they clear the
   cursor forward but earn **no stars and no points** — `chapterStars` counts only
-  typed drills. ENTER or the button advances.
+  typed parts. ENTER or the button advances.
 
   TypingClub uses short videos for these; we animate the hands and mascot we
   already have. It teaches the same thing, stays in the app's visual language,
   and a Thai learner isn't left watching English narration.
-- **Tricky words** — at the tail of chapter 7. English gets the homophone traps
+- **Tricky words** — at the tail of lesson 25. English gets the homophone traps
   (`their/they're/there`, `its/it's`) and the classic misspellings. Thai's
   equivalent problem is spelling rather than homophone choice, so it drills the
   forms Thai writers most often get wrong — `อนุญาต`, `สังเกต`, `กะเพรา`,
@@ -162,7 +192,7 @@ Beyond the ordinary drills:
 - **Dynamic Practice** (`#/practice/:lang/dynamic`) — a drill generated from the
   keys you actually miss, bursting each weak key then interleaving it with keys
   you've settled. It earns points and feeds key stats but never clears a drill,
-  moves the chapter cursor, or sets a ghost. With no miss data yet it shows an
+  moves the lesson cursor, or sets a ghost. With no miss data yet it shows an
   empty state rather than a meaningless drill.
 - The "ghost" is your best wpm on that exact drill; the grey tick on the progress
   bar is where it would be right now.
@@ -173,16 +203,16 @@ Beyond the ordinary drills:
 
 Onboarding asks who is learning — **เด็ก (7–12)** or **วัยรุ่นและผู้ใหญ่ (13+)** —
 and it changes the *words*, never the interface. Same screens, same keys, same
-chapter numbering; chapters 7–9 simply read differently. An adult types about the
+lesson numbering; lessons 25–27 simply read differently. An adult types about the
 Pacific Ocean and photosynthesis; a child types about her cat sleeping under the
 table. Changeable any time from Stats.
 
-Chapters 1–6 are byte-identical in both bands, because they are mechanical key
+Lessons 1–24 are byte-identical in both bands, because they are mechanical key
 drills and the keys are the keys at any age.
 
 The implementation is a `childText` beside each `text`, deliberately **not** a
-separate chapter list: a drill's index is part of its progress key, so keeping
-the counts identical means stars, ghosts and cleared drills all survive a change
+separate lesson list: a part's index is part of its progress key, so keeping
+the counts identical means stars, ghosts and cleared parts all survive a change
 of band. Tests assert the counts match, that 1–6 do not drift, that the child
 text obeys every invariant the adult text does, and that the band actually
 changes at least 20 drills.
@@ -287,14 +317,14 @@ independently published layout. (An earlier hand-read source turned out to list
 only 10 of the 11 home keys, omitting ไ and so putting ข on the wrong finger —
 which is why the machine-readable source was worth chasing.)
 
-**Each layout has its own curriculum for chapters 1–6**, because those chapters
-are defined by where keys physically sit — Kedmanee's home row is
+**Each layout has its own key order for lessons 1–24**, because those lessons are
+defined by where keys physically sit — Kedmanee's home row is
 `ฟ ห ก ด เ ้ ่ า ส ว`, Pattachote's is `้ ท ง ก ั  ี า น เ ไ ข`. Both use the
 same mirrored-pair pedagogy, and both happen to spell a real word in the very
-first drill (`กา`). Chapters 7–10 are position-independent and shared.
+first lesson (`กา`). Lessons 25–28 are position-independent and shared.
 
 **Progress is per layout, not just per language.** `store.track()` maps `'th'` on
-to `th` or `th_pat`, so chapters, stars, ghosts and the per-key heatmap all stay
+to `th` or `th_pat`, so lessons, stars, ghosts and the per-key heatmap all stay
 separate. Switching layouts never destroys progress and never carries a miss rate
 across to a keyboard where the key isn't in that place.
 

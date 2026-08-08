@@ -6,6 +6,7 @@ import { setAgeBand } from './content.js';
 import * as store from './store.js';
 import { homeScreen } from './screens/home.js';
 import { journeyScreen } from './screens/journey.js';
+import { lessonScreen } from './screens/lesson.js';
 import { practiceScreen } from './screens/practice.js';
 import { resultsScreen } from './screens/results.js';
 import { arcadeScreen } from './screens/arcade.js';
@@ -33,7 +34,10 @@ function parse() {
 function screenFor({ name, rest }) {
   switch (name) {
     case 'onboarding': return [onboardingScreen, {}];
-    case 'lessons': return [journeyScreen, { lang: rest[0] }];
+    // #/lessons — the map; #/lessons/th/4 — one lesson's part list.
+    case 'lessons': return rest[1] !== undefined
+      ? [lessonScreen, { lang: rest[0] === 'en' ? 'en' : 'th', id: Number(rest[1]) }]
+      : [journeyScreen, { lang: rest[0] }];
     case 'practice': return [practiceScreen, {
       lang: rest[0] === 'en' ? 'en' : 'th',
       // #/practice/th/dynamic — a drill generated from your weak keys
@@ -62,6 +66,7 @@ function shell(view, route) {
       : route.name === 'results' ? '#/home'
         : `#/${route.name}`;
 
+  const lessonsHref = `#/lessons/${store.resumeLang()}`;
   const bar = el('nav.topbar', { 'aria-label': 'เมนูหลัก · Main navigation' },
     el('a.brand', { href: '#/home' },
       el('div.brand-mark', {}, 'ตุ'),
@@ -69,7 +74,10 @@ function shell(view, route) {
         el('div.brand-name', {}, 'ตุ๊กไทป์'),
         el('div.brand-sub', {}, 'TUKTYPE'))),
     el('div.nav', {}, NAV.map(([href, th, en]) =>
-      el('a', { href, class: href === active ? 'on' : '' }, th, ' ', el('span.en', {}, en)))),
+      el('a', {
+        href: href === '#/lessons' ? lessonsHref : href,
+        class: href === active ? 'on' : '',
+      }, th, ' ', el('span.en', {}, en)))),
     el('div.topbar-right', {},
       el('div.streak-pill', { 'aria-label': `สตรีค ${s.streak.count} วัน · ${s.streak.count}-day streak` },
         el('span.blip', { 'aria-hidden': 'true' }),
@@ -112,7 +120,7 @@ window.addEventListener('keydown', (e) => {
   if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
   const r = parse();
   if (r.name !== 'home') return;
-  if (e.key === '1' || e.key === 'Enter') nav('#/practice/th');
+  if (e.key === '1' || e.key === 'Enter') nav(`#/practice/${store.resumeLang()}`);
   if (e.key === '2') nav('#/arcade');
   if (e.key === '3') nav('#/lyrics');
 });

@@ -2,7 +2,7 @@
 
 import { el, mascot, fmt, mmss, stars } from '../ui.js';
 import * as store from '../store.js';
-import { chapter, drillCount } from '../content.js';
+import { chapter, drillCount, LESSON_COUNT } from '../content.js';
 import { glyphForKey } from '../layouts.js';
 import { adSlot } from '../ads.js';
 import { TIPS } from '../tips.js';
@@ -109,12 +109,16 @@ export function resultsScreen(_params, nav) {
           'กลับไปบทเรียน · Back to lessons')
         : hasNext
           ? el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/practice/${r.lang}/${r.chapterId}/${nextDrill}`) },
-            'แบบฝึกถัดไป · Next drill')
-          : el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/practice/${r.lang}/${Math.min(10, r.chapterId + 1)}/0`) },
-            'บทถัดไป · Next chapter'),
+            'ตอนถัดไป · Next part')
+          : el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/practice/${r.lang}/${Math.min(LESSON_COUNT, r.chapterId + 1)}/0`) },
+            'บทถัดไป · Next lesson'),
       !dyn && store.weakKeys(r.lang, 3).length
         ? el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/practice/${r.lang}/dynamic`) },
           'ซ้อมปุ่มที่พลาด · Drill my misses')
+        : null,
+      !dyn
+        ? el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/lessons/${r.lang}/${r.chapterId}`) },
+          'ตอนอื่นในบทนี้ · Other parts')
         : null,
       el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav(`#/lessons/${r.lang}`) }, 'แผนที่บทเรียน · Journey'),
       el('button.btn-ghost', { style: 'width:100%;padding:14px', onClick: () => nav('#/home') }, 'หน้าแรก · Home')));
@@ -139,7 +143,7 @@ export function resultsScreen(_params, nav) {
     el('div.eyebrow', { style: 'margin-bottom:14px' },
       dyn
         ? `${r.lang === 'th' ? 'ไทย' : 'ENGLISH'} · ซ้อมเฉพาะปุ่มที่พลาด · DYNAMIC PRACTICE`
-        : `${r.lang === 'th' ? 'ไทย' : 'ENGLISH'} · บทที่ ${chap.id} ${chap.name} · แบบฝึก ${r.drill + 1}/${total} · เป้า ${r.goal} WPM`),
+        : `${r.lang === 'th' ? 'ไทย' : 'ENGLISH'} · บทที่ ${chap.id} ${chap.name} · ตอนที่ ${r.drill + 1}/${total} · เป้า ${r.goal} WPM`),
     el('div.res-grid', {},
       el('div.stack', { style: 'gap:18px' },
         hero,

@@ -4,7 +4,9 @@
 import { el, mascot, faceMascot } from '../ui.js';
 import { Engine, isTypingKey } from '../engine.js';
 import { keyboardPanel } from '../keyboard.js';
-import { chapter, drillText, drillFocus, drillTip, drillCount, dynamicDrill } from '../content.js';
+import {
+  chapter, drillText, drillFocus, drillTip, drillCount, dynamicDrill, LESSON_COUNT,
+} from '../content.js';
 import { tipCard } from '../tips.js';
 import { wrongInputMethod } from '../layouts.js';
 import * as store from '../store.js';
@@ -57,12 +59,14 @@ export function practiceScreen({ lang = 'th', ch = null, drill = null, dynamic =
     const focus = dynamic
       ? `ปุ่มที่คุณพลาดบ่อย · built from the keys you miss`
       : drillFocus(curLang, chId, drillIx);
+    const total = drillCount(curLang, chId);
     const heading = dynamic
       ? 'ซ้อมเฉพาะปุ่ม · DYNAMIC PRACTICE'
-      : `บทที่ ${chId} · DRILL ${drillIx + 1} OF ${drillCount(curLang, chId)} · เป้า ${store.goalWpm(curLang, chId)} WPM`;
+      : `บทที่ ${chId} · ตอนที่ ${drillIx + 1}/${total} · เป้า ${store.goalWpm(curLang, chId)} WPM`;
     const header = el('div.spread', {},
       el('div.row', { style: 'gap:16px' },
         el('div.segmented', {}, tabTh, tabEn),
+        dynamic ? null : partStepper(),
         el('div', {},
           el('div.eyebrow', {}, heading),
           focus ? el('div', { style: 'margin-top:6px;font:500 12.5px/1.2 var(--th);color:var(--lime)' }, focus) : null)),
@@ -117,6 +121,7 @@ export function practiceScreen({ lang = 'th', ch = null, drill = null, dynamic =
       el('div.row', { style: 'gap:8px' },
         el('button.btn-ghost', { onClick: () => restart() }, 'เริ่มใหม่ · Restart'),
         kbBtn,
+        el('button.btn-ghost', { onClick: () => nav(`#/lessons/${curLang}/${chId}`) }, 'ตอนอื่น · Parts'),
         el('button.btn-ghost', { onClick: () => nav(`#/lessons/${curLang}`) }, 'บทเรียน · Lessons'),
         soundBtn));
 
@@ -229,6 +234,38 @@ export function practiceScreen({ lang = 'th', ch = null, drill = null, dynamic =
     engine.addEventListener('change', paint);
     paint();
 
+    /**
+     * Step between the parts of this lesson without leaving the drill. Redoing
+     * the part you just fumbled is the commonest thing a learner wants, and
+     * routing back through the map to do it is three clicks too many.
+     */
+    function partStepper() {
+      const step = (delta) => {
+        const next = drillIx + delta;
+        if (next < 0 || next >= total) return;
+        goPart(chId, next);
+      };
+      return el('div.row', { style: 'gap:4px' },
+        el('button.btn-ghost', {
+          style: 'padding:7px 10px', disabled: drillIx <= 0,
+          title: 'ตอนก่อนหน้า · previous part',
+          'aria-label': 'ตอนก่อนหน้า · previous part',
+          onClick: () => step(-1),
+        }, '◀'),
+        el('button.btn-ghost', {
+          style: 'padding:7px 10px', disabled: drillIx >= total - 1,
+          title: 'ตอนถัดไป · next part',
+          'aria-label': 'ตอนถัดไป · next part',
+          onClick: () => step(1),
+        }, '▶'));
+    }
+
+    // Routes rather than re-rendering in place, so the address bar keeps up: a
+    // stepped-to part that a reload would not return to is a trap.
+    function goPart(ch, ix) {
+      nav(`#/practice/${curLang}/${Math.max(1, Math.min(LESSON_COUNT, ch))}/${ix}`);
+    }
+
     function finish() {
       const sum = engine.summary();
       if (dynamic) store.commitDynamic({ lang: curLang, ...sum });
@@ -305,7 +342,7 @@ export function practiceScreen({ lang = 'th', ch = null, drill = null, dynamic =
     const total = drillCount(curLang, chId);
     const advance = () => {
       const { next } = store.commitTip({ lang: curLang, chapterId: chId, drill: drillIx });
-      if (next === null) nav(`#/lessons/${curLang}`);
+      if (next === null) nav(`#/lessons/${curLang}/${chId}`);
       else nav(`#/practice/${curLang}/${chId}/${next}`);
     };
 

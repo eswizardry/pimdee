@@ -106,7 +106,7 @@ export function onboardingScreen(_params, nav) {
               el('div', { style: 'font:400 11px/1.3 var(--th);color:var(--sub);margin-top:4px' }, en)),
             layout === id ? el('div.tick', {}, '✓') : null))),
       el('div.note', { style: 'margin-top:20px' },
-        'อายุผู้เรียนใช้กำหนดเนื้อหา ไม่ใช่หน้าตา — เด็กได้คำศัพท์ง่ายในบทที่ 7–9 ผู้ใหญ่ได้ประโยคยาว เปลี่ยนได้ทีหลังในหน้าสถิติ ',
+        'อายุผู้เรียนใช้กำหนดเนื้อหา ไม่ใช่หน้าตา — เด็กได้คำศัพท์ง่ายในบทที่ 25–27 ผู้ใหญ่ได้ประโยคยาว เปลี่ยนได้ทีหลังในหน้าสถิติ ',
         el('span.dim', {}, '· age changes the word lists, never the UI')),
       nextBtn(() => { step = 3; render(); }));
   }
@@ -301,6 +301,7 @@ export function onboardingScreen(_params, nav) {
   // -- step 4 --------------------------------------------------------------
   function stepGoal() {
     const opts = [[3, 'เบา ๆ', '3 drills a day'], [5, 'พอดี', '5 drills a day'], [10, 'จริงจัง', '10 drills a day']];
+    const placed = Math.max(store.progressOf('th').chapter, store.progressOf('en').chapter);
     return pane('ขั้นที่ 4 · เป้าหมายต่อวัน',
       el('div.row', { style: 'gap:12px' },
         opts.map(([n, th, en]) =>
@@ -316,7 +317,21 @@ export function onboardingScreen(_params, nav) {
       el('div.row', { style: 'gap:14px;margin-top:24px;padding:16px;border-radius:8px;background:rgba(200,247,90,.10)' },
         mascot(48, 12),
         el('div', { style: 'font:400 13px/1.5 var(--th)' },
-          `เริ่มที่ ไทย บทที่ ${store.progressOf('th').chapter} และ English chapter ${store.progressOf('en').chapter} — ปรับได้ทุกเมื่อจากแผนที่บทเรียน`)),
+          `เริ่มที่ ไทย บทที่ ${store.progressOf('th').chapter} และ English lesson ${store.progressOf('en').chapter} — ปรับได้ทุกเมื่อจากแผนที่บทเรียน`)),
+      // The placement test is a convenience, not a verdict. Someone who wants to
+      // relearn from the beginning — the whole point of resetting — must be able
+      // to say so, rather than be measured back into the middle of the course.
+      placed > 1
+        ? el('button.btn-ghost', {
+          style: 'width:100%;margin-top:12px;padding:14px',
+          onClick: () => {
+            store.update((st) => {
+              ['th', 'th_pat', 'en'].forEach((t) => { st.progress[t].chapter = 1; st.progress[t].drill = 0; });
+            });
+            step = 4; render();
+          },
+        }, 'ไม่เป็นไร ขอเริ่มจากบทที่ 1 · Start from lesson 1 instead')
+        : null,
       el('button.btn', {
         style: 'margin-top:24px',
         onClick: () => {
@@ -337,11 +352,15 @@ export function onboardingScreen(_params, nav) {
   return root;
 }
 
-/** Map a placement wpm onto a starting chapter. */
+/**
+ * Map a placement wpm onto a starting lesson, on the 27-lesson scale: the top of
+ * each row's block, so a fast typist skips the rows they already own but still
+ * meets every key of the next one.
+ */
 export function startChapter(wpm) {
-  if (wpm >= 55) return 8;
-  if (wpm >= 40) return 6;
-  if (wpm >= 28) return 4;
-  if (wpm >= 18) return 2;
+  if (wpm >= 55) return 23;  // straight to the shift layer
+  if (wpm >= 40) return 18;  // number row
+  if (wpm >= 28) return 13;  // bottom row
+  if (wpm >= 18) return 7;   // top row
   return 1;
 }
