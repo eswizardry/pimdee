@@ -91,7 +91,7 @@ function coachLine() {
   const en = store.avgOf('en', 'wpm');
   if (!th && !en) {
     return el('span', {}, 'ยังไม่มีสถิติ — ลองซ้อมสัก 1 รอบเพื่อให้ระบบวัดระดับได้ ',
-      el('span.dim', {}, '· run one drill so TukType can calibrate you.'));
+      el('span.dim', {}, '· run one drill so PimDee can calibrate you.'));
   }
   const gap = Math.abs(th - en);
   const behind = th < en ? 'ภาษาไทย' : 'ภาษาอังกฤษ';

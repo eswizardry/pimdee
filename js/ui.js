@@ -43,13 +43,13 @@ export const stat = (n, label, color) =>
 export const bar = (pct, cls = '') =>
   el('div.bar', { class: cls }, el('i', { style: `width:${Math.max(0, Math.min(100, pct))}%` }));
 
-/** The ตุ๊ก mascot, sized to `size`px. Returns the element with .parts refs. */
+/** The น้องดี mascot, sized to `size`px. Returns the element with .parts refs. */
 export function mascot(size = 66, radius = 16) {
   const s = size / 66;
   const eyeL = el('i.eye', { style: `top:${20 * s}px;left:${14 * s}px;width:${10 * s}px;height:${14 * s}px` });
   const eyeR = el('i.eye', { style: `top:${20 * s}px;left:${38 * s}px;width:${10 * s}px;height:${14 * s}px` });
   const mouth = el('i.mouth', { style: `top:${44 * s}px;left:${22 * s}px;width:${20 * s}px;height:${8 * s}px` });
-  const node = el('div.tuk', {
+  const node = el('div.mascot', {
     'aria-hidden': 'true',
     style: `width:${size}px;height:${size}px;border-radius:${radius}px`,
   }, eyeL, eyeR, mouth);

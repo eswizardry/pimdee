@@ -91,7 +91,7 @@ function backupCard(nav) {
     const blob = new Blob([store.exportJSON()], { type: 'application/json' });
     const a = el('a', {
       href: URL.createObjectURL(blob),
-      download: `tuktype-progress-${new Date().toISOString().slice(0, 10)}.json`,
+      download: `pimdee-progress-${new Date().toISOString().slice(0, 10)}.json`,
     });
     document.body.appendChild(a);
     a.click();

@@ -1,8 +1,15 @@
-# ตุ๊กไทป์ · TukType
+# พิมพ์ดี · PimDee
 
 A bilingual typing tutor — Thai (Kedmanee or Pattachote) and English (QWERTY) — with one
-combined score and per-language progress. Implementation of the `TukType.dc.html`
-design doc (Claude Design project `9b454a97`).
+combined score and per-language progress. Lives at
+[typing.codedmark.com](https://typing.codedmark.com).
+
+The name is a clip of **พิมพ์ดีด** (*phim-dìit*), the everyday Thai word for typing:
+**พิมพ์ดี** reads as both "typing" and "types well". Romanised **Pim**, not *Phim* —
+RTGS says `ph`, but an English reader turns that into *fim*.
+
+Grown out of the `TukType.dc.html` design doc (Claude Design project `9b454a97`);
+the app was called TukType until the rename.
 
 Zero build step: plain HTML, CSS and ES modules.
 
@@ -69,7 +76,7 @@ js/
   engine.js    Typing engine — keystrokes, accuracy, combo, rolling-wpm samples
   store.js     localStorage progress: points, ghosts, streak, key stats
   keyboard.js  The live keyboard panel
-  ui.js        DOM helpers + the ตุ๊ก mascot
+  ui.js        DOM helpers + the น้องดี mascot
   audio.js     WebAudio key feedback
   main.js      Shell + hash router
   screens/     One module per screen
@@ -196,8 +203,10 @@ Beyond the ordinary drills:
   empty state rather than a meaningless drill.
 - The "ghost" is your best wpm on that exact drill; the grey tick on the progress
   bar is where it would be right now.
-- Everything lives under the `tuktype.v1` localStorage key. `#/stats` → Reset
-  wipes it.
+- Everything lives under the `pimdee.v2` localStorage key. On first load after the
+  rename, a record under the old `tuktype.v1` key is moved across once — a rename
+  is not a reason to take someone's streak away — and the original is left in
+  place rather than deleted. `#/stats` → Reset wipes it.
 
 ## Age band
 

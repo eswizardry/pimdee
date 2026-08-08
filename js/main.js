@@ -69,10 +69,10 @@ function shell(view, route) {
   const lessonsHref = `#/lessons/${store.resumeLang()}`;
   const bar = el('nav.topbar', { 'aria-label': 'เมนูหลัก · Main navigation' },
     el('a.brand', { href: '#/home' },
-      el('div.brand-mark', {}, 'ตุ'),
+      el('div.brand-mark', {}, 'พ'),
       el('div', {},
-        el('div.brand-name', {}, 'ตุ๊กไทป์'),
-        el('div.brand-sub', {}, 'TUKTYPE'))),
+        el('div.brand-name', {}, 'พิมพ์ดี'),
+        el('div.brand-sub', {}, 'PIMDEE'))),
     el('div.nav', {}, NAV.map(([href, th, en]) =>
       el('a', {
         href: href === '#/lessons' ? lessonsHref : href,

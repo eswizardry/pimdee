@@ -725,6 +725,38 @@ test('the lesson cursor stops at 27 and never drifts onto the boss', () => {
   assert.equal(S.progressOf('th').chapter, C.LESSON_COUNT, 'cursor stayed on the last lesson');
 });
 
+// The storage key changed with the name. Anything earned under the old key is
+// still this learner's progress, so losing it to a rebrand would be indefensible.
+// store.js reads its key once at module load, so proving the move needs a second
+// module instance — hence the cache-busting specifier.
+const legacyRecord = {
+  v: 2, onboarded: true, langs: ['th', 'en'], lastLang: 'th',
+  streak: { count: 6, best: 6, last: null },
+  progress: {
+    th: { chapter: 9, drill: 2, cleared: ['1:0', '1:1'], points: 480, bestWpm: 31, bestAcc: 98, runs: 40, history: [] },
+    th_pat: { chapter: 1, drill: 0, cleared: [], points: 0, bestWpm: 0, bestAcc: 0, runs: 0, history: [] },
+    en: { chapter: 3, drill: 1, cleared: [], points: 90, bestWpm: 22, bestAcc: 95, runs: 8, history: [] },
+  },
+  ghosts: { 'th:1:1': 24 }, stars: { 'th:1:1': 4 },
+  keyStats: { th: {}, th_pat: {}, en: {} }, arcade: { high: 700, level: 3 }, lastRun: null,
+};
+mem.delete('pimdee.v2');
+mem.set('tuktype.v1', JSON.stringify(legacyRecord));
+const Renamed = await import('../js/store.js?rename-probe');
+
+test('progress survives the TukType -> PimDee rename', () => {
+  const p = Renamed.progressOf('th');
+  assert.equal(p.chapter, 9, 'lesson cursor carried over');
+  assert.equal(p.points, 480);
+  assert.equal(Renamed.get().streak.count, 6, 'streak carried over');
+  assert.equal(Renamed.starsAt('th', 1, 1), 4, 'stars carried over');
+  assert.ok(mem.has('pimdee.v2'), 'and were written under the new key');
+});
+
+test('the pre-rename record is left in place, not deleted', () => {
+  assert.ok(mem.has('tuktype.v1'), 'the original stays readable if the move went wrong');
+});
+
 // --- generated drills ------------------------------------------------------
 section('dynamic practice');
 

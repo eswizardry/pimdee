@@ -1,7 +1,7 @@
 // Animated hands under the keyboard: highlights the finger that should press
 // the next key, and plays a press on each keystroke.
 //
-// The hands are built from the same rounded-rectangle vocabulary as the ตุ๊ก
+// The hands are built from the same rounded-rectangle vocabulary as the น้องดี
 // mascot rather than anatomical outlines — at this size a stylised hand reads
 // faster, and it stays legible against the dark canvas.
 

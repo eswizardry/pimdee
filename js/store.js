@@ -17,7 +17,11 @@ export const track = (lang) =>
 // is keyed "lesson:part", and the rebuild moved every one of those boundaries —
 // so a v1 record cannot be carried forward without lying about what was learned.
 // migrate() drops it and the learner starts again at lesson 1.
-const KEY = 'tuktype.v1';
+const KEY = 'pimdee.v2';
+// The app was called TukType until the rename. Progress earned under the old key
+// is still this learner's progress, so it is moved across once rather than
+// dropped — a rename is not a reason to take someone's streak away.
+const LEGACY_KEY = 'tuktype.v1';
 const VERSION = 2;
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -78,9 +82,24 @@ function migrate(raw) {
   return s;
 }
 
+/**
+ * Read the current key, falling back to the pre-rename one exactly once. The
+ * legacy record is left in place rather than deleted: if the migration turns out
+ * to be wrong, the original is still there to look at.
+ */
+function load() {
+  const raw = localStorage.getItem(KEY);
+  if (raw !== null) return migrate(JSON.parse(raw));
+  const legacy = localStorage.getItem(LEGACY_KEY);
+  if (legacy === null) return blank();
+  const moved = migrate(JSON.parse(legacy));
+  try { localStorage.setItem(KEY, JSON.stringify(moved)); } catch { /* private mode */ }
+  return moved;
+}
+
 let state;
 try {
-  state = migrate(JSON.parse(localStorage.getItem(KEY) || 'null'));
+  state = load();
 } catch {
   state = blank();
 }
