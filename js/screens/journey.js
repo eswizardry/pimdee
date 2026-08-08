@@ -24,16 +24,44 @@ const idsOn = (page) => [...Array(PAGE)]
   .map((_, i) => page * PAGE + 1 + i)
   .filter((i) => i <= LESSON_COUNT);
 
+/**
+ * One root for the life of the screen, repainted in place.
+ *
+ * The page used to be swapped by building a *fresh* root and moving its children
+ * across — which left the pager you could see wired to the closure of an element
+ * that was no longer in the document. The first page change worked and every one
+ * after it did nothing. Anything that rebuilds the page must therefore go through
+ * `show`, which owns the one root that is actually mounted.
+ */
 export function journeyScreen(params, nav) {
   const focusLang = params.lang === 'en' ? 'en' : 'th';
-  return renderPage(pageOf(store.progressOf(focusLang).chapter), focusLang, nav);
+  const root = el('div.wrap', {});
+  let detach = null;
+
+  function show(page) {
+    detach?.();
+    const { nodes, placeRails } = buildPage(page, focusLang, nav, show);
+    root.replaceChildren(...nodes);
+    window.addEventListener('resize', placeRails);
+    detach = () => window.removeEventListener('resize', placeRails);
+    root.mount = placeRails;
+    // Measure now if we are already on screen, and again next frame once fonts
+    // and wrapping have settled. The second pass alone is not enough:
+    // requestAnimationFrame does not fire in a hidden tab, so changing page and
+    // switching away would leave the rails unplaced until the next resize.
+    if (root.isConnected) placeRails();
+    requestAnimationFrame(placeRails);
+  }
+
+  show(pageOf(store.progressOf(focusLang).chapter));
+  root.unmount = () => detach?.();
+  return root;
 }
 
-function renderPage(page, focusLang, nav) {
+function buildPage(page, focusLang, nav, show) {
   const ids = idsOn(page);
   const last = page === PAGES - 1;
 
-  const root = el('div.wrap', {});
   const head = el('div.spread', { style: 'align-items:flex-end;padding:0 4px 18px' },
     el('div', {},
       el('div.eyebrow', {}, `เส้นทางการเรียน · JOURNEY · ${LESSON_COUNT} บท`),
@@ -54,18 +82,9 @@ function renderPage(page, focusLang, nav) {
         style: 'padding:6px 12px',
         class: p === page ? 'on' : '',
         disabled: p === page,
-        onClick: () => swap(p),
+        onClick: () => show(p),
       }, `${range[0]}–${range[range.length - 1]}`);
     }));
-
-  function swap(p) {
-    const next = renderPage(p, focusLang, nav);
-    root.unmount?.();
-    root.replaceChildren(...next.childNodes);
-    root.mount = next.mount;
-    root.unmount = next.unmount;
-    requestAnimationFrame(() => next.mount?.());
-  }
 
   const railTh = el('div.lane-line');
   const railEn = el('div.lane-line');
@@ -92,16 +111,10 @@ function renderPage(page, focusLang, nav) {
     if (en !== null) railEn.style.top = `${en}px`;
   };
 
-  root.appendChild(head);
-  root.appendChild(pager);
-  root.appendChild(lanes);
+  const nodes = [head, pager, lanes];
   const ad = adSlot('journeyFooter');
-  if (ad) root.appendChild(ad);
-  root.mount = placeRails;
-  requestAnimationFrame(placeRails);
-  window.addEventListener('resize', placeRails);
-  root.unmount = () => window.removeEventListener('resize', placeRails);
-  return root;
+  if (ad) nodes.push(ad);
+  return { nodes, placeRails };
 }
 
 const legend = (color, text, radius) =>
