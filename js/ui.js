@@ -46,8 +46,13 @@ export const bar = (pct, cls = '') =>
 /** The น้องดี mascot, sized to `size`px. Returns the element with .parts refs. */
 export function mascot(size = 66, radius = 16) {
   const s = size / 66;
-  const eyeL = el('i.eye', { style: `top:${20 * s}px;left:${14 * s}px;width:${10 * s}px;height:${14 * s}px` });
-  const eyeR = el('i.eye', { style: `top:${20 * s}px;left:${38 * s}px;width:${10 * s}px;height:${14 * s}px` });
+  // A catch light in each eye. Sized in percentages so it holds at every size the
+  // mascot is used at, and clipped by the eye rather than positioned against it —
+  // so when faceMascot squints the eyes on a miss, the light disappears behind
+  // the lid instead of floating over the face.
+  const spark = () => el('b');
+  const eyeL = el('i.eye', { style: `top:${20 * s}px;left:${14 * s}px;width:${10 * s}px;height:${14 * s}px` }, spark());
+  const eyeR = el('i.eye', { style: `top:${20 * s}px;left:${38 * s}px;width:${10 * s}px;height:${14 * s}px` }, spark());
   const mouth = el('i.mouth', { style: `top:${44 * s}px;left:${22 * s}px;width:${20 * s}px;height:${8 * s}px` });
   const node = el('div.mascot', {
     'aria-hidden': 'true',

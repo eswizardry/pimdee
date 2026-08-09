@@ -142,7 +142,11 @@ a{color:inherit;text-decoration:none}
 /* ---------- mascot (น้องดี) ---------- */
 .mascot{position:relative;background:var(--lime);border-radius:16px;flex:none;animation:tt-bob 3.2s ease-in-out infinite}
 .mascot i{position:absolute;background:var(--bg);display:block;transition:height .12s,border-radius .12s,transform .12s}
-.mascot .eye{border-radius:5px}
+.mascot .eye{border-radius:5px;overflow:hidden}
+.mascot .eye b{
+  position:absolute;top:12%;right:16%;width:34%;height:24%;
+  border-radius:50%;background:var(--lime);opacity:.9;
+}
 .mascot .mouth{border-radius:0 0 10px 10px}
 .mascot.happy{animation-duration:1.4s}
 
